@@ -12,12 +12,22 @@ def _service_headers(headers: dict[str, str] | None) -> dict[str, str]:
     return headers or {}
 
 
+def _timeout_from_settings() -> httpx.Timeout:
+    settings = get_settings()
+    return httpx.Timeout(
+        connect=settings.GATEWAY_TIMEOUT_CONNECT_SECONDS,
+        read=settings.GATEWAY_TIMEOUT_READ_SECONDS,
+        write=settings.GATEWAY_TIMEOUT_WRITE_SECONDS,
+        pool=settings.GATEWAY_TIMEOUT_POOL_SECONDS,
+    )
+
+
 async def request_estimation(payload: EstimationRequest, headers: dict[str, str] | None = None) -> dict:
     """Forward an estimation request from gateway to estimation service."""
     settings = get_settings()
     url = f"{settings.ESTIMATION_SERVICE_URL}/internal/v1/estimate"
 
-    timeout = httpx.Timeout(connect=5.0, read=120.0, write=30.0, pool=5.0)
+    timeout = _timeout_from_settings()
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
             response = await client.post(
@@ -47,7 +57,7 @@ async def request_estimation_async(
     settings = get_settings()
     url = f"{settings.ESTIMATION_SERVICE_URL}/internal/v1/estimate/async"
 
-    timeout = httpx.Timeout(connect=5.0, read=30.0, write=30.0, pool=5.0)
+    timeout = _timeout_from_settings()
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
             response = await client.post(
@@ -77,7 +87,7 @@ async def request_estimation_status(
     settings = get_settings()
     url = f"{settings.ESTIMATION_SERVICE_URL}/internal/v1/jobs/{job_id}"
 
-    timeout = httpx.Timeout(connect=5.0, read=30.0, write=30.0, pool=5.0)
+    timeout = _timeout_from_settings()
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
             response = await client.get(url, headers=_service_headers(headers))

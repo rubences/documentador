@@ -1,5 +1,6 @@
 import structlog
 import uuid
+from asyncio import CancelledError
 from asyncio import Task
 from asyncio import sleep
 from asyncio import create_task
@@ -100,7 +101,7 @@ async def lifespan(app: FastAPI):
         outbox_dispatcher_task.cancel()
         try:
             await outbox_dispatcher_task
-        except Exception:
+        except CancelledError:
             pass
     if rabbitmq_publisher:
         await rabbitmq_publisher.close()

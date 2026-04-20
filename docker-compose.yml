@@ -41,7 +41,16 @@ services:
       APP_PORT: "8001"
       RABBITMQ_ENABLED: "true"
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      RABBITMQ_RETRY_EXCHANGE: estimation.jobs.retry
+      RABBITMQ_RETRY_QUEUE: estimation.jobs.retry.queue
+      RABBITMQ_DLQ_EXCHANGE: estimation.jobs.dlq
+      RABBITMQ_DLQ_QUEUE: estimation.jobs.dlq.queue
+      RABBITMQ_MAX_RETRIES: "5"
+      RABBITMQ_BASE_RETRY_DELAY_MS: "1000"
       REDIS_URL: redis://redis:6379/0
+      OUTBOX_KEY_PREFIX: estimation:outbox
+      OUTBOX_DISPATCH_BATCH_SIZE: "20"
+      OUTBOX_DISPATCH_INTERVAL_SECONDS: "1.0"
     volumes:
       - ./app:/app/app
     command: sh -c "uvicorn app.estimation.main:app --host 0.0.0.0 --port 8001 --reload"

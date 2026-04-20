@@ -1,0 +1,50 @@
+% Diagrama TikZ - Integracion macro GraphRAG + OpenCode + Chatbot
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.8cm,
+    box/.style={draw, rounded corners, align=center, minimum width=3.6cm, minimum height=0.95cm},
+    infra/.style={draw, dashed, rounded corners, align=center, minimum width=3.8cm, minimum height=1.0cm},
+    flow/.style={->, thick}
+  ]
+
+  \node[box] (opencode) {OpenCode (MCP Tools)};
+  \node[box, below=of opencode] (chatbot) {Chatbot};
+  \node[box, right=of opencode, xshift=2.0cm] (gateway) {API Gateway\\Timeout + Circuit Breaker};
+  \node[box, below=of gateway] (mcp) {MCP Bridge Service};
+
+  \node[box, right=of gateway, xshift=2.4cm] (query) {GraphRAG Query Service};
+  \node[box, below=of query] (ingestion) {GraphRAG Ingestion Service};
+  \node[box, below=of ingestion] (estimation) {Estimation Service};
+
+  \node[infra, right=of query, xshift=2.2cm] (rabbit) {RabbitMQ\\Main + Retry + DLQ};
+  \node[infra, below=of rabbit] (redis) {Redis\\Job State + Outbox + Cache};
+  \node[infra, below=of redis] (obs) {Prometheus / Metrics / Tracing IDs};
+
+  \draw[flow] (opencode) -- (gateway);
+  \draw[flow] (opencode) -- (mcp);
+  \draw[flow] (mcp) -- (gateway);
+  \draw[flow] (chatbot) -- (gateway);
+
+  \draw[flow] (gateway) -- (query);
+  \draw[flow] (gateway) -- (ingestion);
+  \draw[flow] (gateway) -- (estimation);
+
+  \draw[flow] (ingestion) -- (rabbit);
+  \draw[flow] (estimation) -- (rabbit);
+  \draw[flow] (rabbit) -- (ingestion);
+  \draw[flow] (rabbit) -- (estimation);
+
+  \draw[flow] (gateway) -- (redis);
+  \draw[flow] (ingestion) -- (redis);
+  \draw[flow] (estimation) -- (redis);
+
+  \draw[flow] (gateway) -- (obs);
+  \draw[flow] (query) -- (obs);
+  \draw[flow] (ingestion) -- (obs);
+  \draw[flow] (estimation) -- (obs);
+
+\end{tikzpicture}
+\caption{Integracion macro: OpenCode, Chatbot y GraphRAG sobre infraestructura resiliente}
+\label{fig:macro-graphrag-opencode-chatbot}
+\end{figure}

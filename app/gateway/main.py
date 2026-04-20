@@ -11,12 +11,20 @@ from app.gateway.clients.estimation_client import (
     request_estimation_status,
 )
 from app.gateway.config import get_settings
+from app.gateway.resilience import CircuitBreaker, CircuitBreakerOpenError
 from app.shared.observability import attach_observability
 from app.shared.schemas import (
     AsyncEstimationAccepted,
     AsyncEstimationStatus,
     EstimationRequest,
     EstimationResponse,
+)
+
+settings = get_settings()
+circuit_breaker = CircuitBreaker(
+    failure_threshold=settings.GATEWAY_CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+    recovery_timeout_seconds=settings.GATEWAY_CIRCUIT_BREAKER_RECOVERY_TIMEOUT_SECONDS,
+    half_open_success_threshold=settings.GATEWAY_CIRCUIT_BREAKER_HALF_OPEN_SUCCESS_THRESHOLD,
 )
 
 
@@ -88,11 +96,18 @@ async def create_estimation(request: EstimationRequest, http_request: Request) -
     """Receive a meeting transcription and delegate the estimation generation."""
     log = structlog.get_logger()
     try:
+        await circuit_breaker.before_call()
+    except CircuitBreakerOpenError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    try:
         result = await request_estimation(
             request,
             headers=_downstream_headers(http_request),
         )
+        await circuit_breaker.record_success()
     except EstimationServiceClientError as exc:
+        await circuit_breaker.record_failure()
         log.error("gateway_estimation_error", error=str(exc))
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
@@ -107,11 +122,18 @@ async def create_estimation_async(
     """Queue an async estimation request and return job metadata."""
     log = structlog.get_logger()
     try:
+        await circuit_breaker.before_call()
+    except CircuitBreakerOpenError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    try:
         result = await request_estimation_async(
             request,
             headers=_downstream_headers(http_request),
         )
+        await circuit_breaker.record_success()
     except EstimationServiceClientError as exc:
+        await circuit_breaker.record_failure()
         log.error("gateway_estimation_async_error", error=str(exc))
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
@@ -123,11 +145,18 @@ async def get_estimation_status(job_id: str, http_request: Request) -> AsyncEsti
     """Return status for an asynchronous estimation job."""
     log = structlog.get_logger()
     try:
+        await circuit_breaker.before_call()
+    except CircuitBreakerOpenError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    try:
         result = await request_estimation_status(
             job_id,
             headers=_downstream_headers(http_request),
         )
+        await circuit_breaker.record_success()
     except EstimationServiceClientError as exc:
+        await circuit_breaker.record_failure()
         log.error("gateway_estimation_status_error", job_id=job_id, error=str(exc))
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
@@ -138,9 +167,15 @@ async def get_estimation_status(job_id: str, http_request: Request) -> AsyncEsti
 async def health_check() -> dict:
     """Return gateway health status."""
     settings = get_settings()
+    breaker = await circuit_breaker.snapshot()
     return {
         "status": "healthy",
         "service": "api-gateway",
         "version": "0.2.0",
         "environment": settings.APP_ENV,
+        "circuit_breaker": {
+            "state": breaker.state,
+            "failure_count": breaker.failure_count,
+            "opened_until": breaker.opened_until,
+        },
     }

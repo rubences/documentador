@@ -12,6 +12,13 @@ class Settings(BaseSettings):
     APP_ENV: Literal["development", "staging", "production"] = "development"
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "DEBUG"
     ESTIMATION_SERVICE_URL: str = "http://estimation-service:8001"
+    GATEWAY_TIMEOUT_CONNECT_SECONDS: float = 2.0
+    GATEWAY_TIMEOUT_READ_SECONDS: float = 10.0
+    GATEWAY_TIMEOUT_WRITE_SECONDS: float = 5.0
+    GATEWAY_TIMEOUT_POOL_SECONDS: float = 2.0
+    GATEWAY_CIRCUIT_BREAKER_FAILURE_THRESHOLD: int = 5
+    GATEWAY_CIRCUIT_BREAKER_RECOVERY_TIMEOUT_SECONDS: float = 30.0
+    GATEWAY_CIRCUIT_BREAKER_HALF_OPEN_SUCCESS_THRESHOLD: int = 2
 
 
 @lru_cache

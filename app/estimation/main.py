@@ -1,5 +1,7 @@
 import structlog
 import uuid
+from asyncio import Task
+from asyncio import sleep
 from asyncio import create_task
 from contextlib import asynccontextmanager
 
@@ -7,7 +9,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.estimation.config import get_settings
-from app.estimation.messaging import RabbitMQPublisher, RedisJobStore
+from app.estimation.messaging import RabbitMQPublisher, RedisJobStore, RedisOutboxStore
 from app.estimation.services.llm_service import LLMServiceError, generate_estimation
 from app.shared.observability import attach_observability
 from app.shared.schemas import (
@@ -19,6 +21,8 @@ from app.shared.schemas import (
 
 rabbitmq_publisher: RabbitMQPublisher | None = None
 job_store: RedisJobStore | None = None
+outbox_store: RedisOutboxStore | None = None
+outbox_dispatcher_task: Task | None = None
 
 
 def configure_logging() -> None:
@@ -56,6 +60,8 @@ async def lifespan(app: FastAPI):
 
     global rabbitmq_publisher
     global job_store
+    global outbox_store
+    global outbox_dispatcher_task
 
     job_store = RedisJobStore(
         redis_url=settings.REDIS_URL,
@@ -63,21 +69,43 @@ async def lifespan(app: FastAPI):
     )
     await job_store.connect()
 
+    outbox_store = RedisOutboxStore(
+        redis_url=settings.REDIS_URL,
+        key_prefix=settings.OUTBOX_KEY_PREFIX,
+    )
+    await outbox_store.connect()
+
     if settings.RABBITMQ_ENABLED:
         rabbitmq_publisher = RabbitMQPublisher(
             url=settings.RABBITMQ_URL,
             exchange_name=settings.RABBITMQ_EXCHANGE,
             queue_name=settings.RABBITMQ_QUEUE,
             routing_key=settings.RABBITMQ_ROUTING_KEY,
+            retry_exchange_name=settings.RABBITMQ_RETRY_EXCHANGE,
+            retry_queue_name=settings.RABBITMQ_RETRY_QUEUE,
+            dlq_exchange_name=settings.RABBITMQ_DLQ_EXCHANGE,
+            dlq_queue_name=settings.RABBITMQ_DLQ_QUEUE,
+            max_retries=settings.RABBITMQ_MAX_RETRIES,
+            base_retry_delay_ms=settings.RABBITMQ_BASE_RETRY_DELAY_MS,
         )
         await rabbitmq_publisher.connect()
         await rabbitmq_publisher.consume(_process_queue_message)
         log.info("rabbitmq_consumer_started", queue=settings.RABBITMQ_QUEUE)
+        outbox_dispatcher_task = create_task(_outbox_dispatch_loop())
+        log.info("outbox_dispatcher_started")
 
     log.info("estimation_service_started", environment=settings.APP_ENV)
     yield
+    if outbox_dispatcher_task:
+        outbox_dispatcher_task.cancel()
+        try:
+            await outbox_dispatcher_task
+        except Exception:
+            pass
     if rabbitmq_publisher:
         await rabbitmq_publisher.close()
+    if outbox_store:
+        await outbox_store.close()
     if job_store:
         await job_store.close()
     log.info("estimation_service_shutdown")
@@ -115,6 +143,32 @@ async def _run_estimation_job(job_id: str, transcription: str) -> None:
         await job_store.set_failed(job_id, str(exc))
 
 
+async def _outbox_dispatch_loop() -> None:
+    log = structlog.get_logger()
+    settings = get_settings()
+    if outbox_store is None or rabbitmq_publisher is None:
+        raise RuntimeError("Outbox dispatcher requires initialized stores and publisher")
+
+    while True:
+        events = await outbox_store.claim_pending(settings.OUTBOX_DISPATCH_BATCH_SIZE)
+        if not events:
+            await sleep(settings.OUTBOX_DISPATCH_INTERVAL_SECONDS)
+            continue
+
+        for event in events:
+            event_id = event["event_id"]
+            try:
+                await rabbitmq_publisher.publish(
+                    message=event["payload"],
+                    correlation_id=event["correlation_id"],
+                    headers={"x-outbox-event-id": event_id},
+                )
+                await outbox_store.mark_sent(event_id)
+            except Exception as exc:
+                log.error("outbox_dispatch_failed", event_id=event_id, error=str(exc))
+                await outbox_store.requeue(event_id, str(exc))
+
+
 async def _process_queue_message(payload: dict, correlation_id: str | None) -> None:
     log = structlog.get_logger()
     job_id = payload.get("job_id")
@@ -148,16 +202,18 @@ async def create_estimation_async(request: EstimationRequest, http_request: Requ
     settings = get_settings()
     correlation_id = http_request.state.correlation_id
     job_id = str(uuid.uuid4())
+    event_id = str(uuid.uuid4())
     if job_store is None:
         raise HTTPException(status_code=503, detail="Redis job store is not connected")
 
     await job_store.create_pending(job_id=job_id, correlation_id=correlation_id)
 
     if settings.RABBITMQ_ENABLED:
-        if rabbitmq_publisher is None:
-            raise HTTPException(status_code=503, detail="RabbitMQ is enabled but not connected")
-        await rabbitmq_publisher.publish(
-            message={
+        if outbox_store is None:
+            raise HTTPException(status_code=503, detail="Outbox store is not connected")
+        await outbox_store.enqueue(
+            event_id=event_id,
+            payload={
                 "job_id": job_id,
                 "transcription": request.transcription,
             },

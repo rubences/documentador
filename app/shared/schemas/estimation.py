@@ -39,6 +39,7 @@ class AsyncEstimationStatus(BaseModel):
 
     job_id: str
     status: Literal["queued", "processing", "completed", "failed"]
+    progress: int = Field(..., ge=0, le=100)
     correlation_id: str
     created_at: str
     updated_at: str

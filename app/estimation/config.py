@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     RABBITMQ_EXCHANGE: str = "estimation.jobs"
     RABBITMQ_QUEUE: str = "estimation.jobs.queue"
     RABBITMQ_ROUTING_KEY: str = "estimation.requested"
+    REDIS_URL: str = "redis://redis:6379/0"
+    REDIS_JOB_KEY_PREFIX: str = "estimation:job"
 
     @model_validator(mode="after")
     def validate_api_key_for_provider(self) -> "Settings":

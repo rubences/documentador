@@ -28,6 +28,7 @@ class RabbitMQPublisher:
     async def connect(self) -> None:
         self._connection = await aio_pika.connect_robust(self.url)
         self._channel = await self._connection.channel()
+        await self._channel.set_qos(prefetch_count=10)
         self._exchange = await self._channel.declare_exchange(
             self.exchange_name,
             ExchangeType.DIRECT,

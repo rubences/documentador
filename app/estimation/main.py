@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.estimation.config import get_settings
-from app.estimation.messaging import RabbitMQPublisher, job_store
+from app.estimation.messaging import RabbitMQPublisher, RedisJobStore
 from app.estimation.services.llm_service import LLMServiceError, generate_estimation
 from app.shared.observability import attach_observability
 from app.shared.schemas import (
@@ -18,6 +18,7 @@ from app.shared.schemas import (
 )
 
 rabbitmq_publisher: RabbitMQPublisher | None = None
+job_store: RedisJobStore | None = None
 
 
 def configure_logging() -> None:
@@ -54,6 +55,14 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
 
     global rabbitmq_publisher
+    global job_store
+
+    job_store = RedisJobStore(
+        redis_url=settings.REDIS_URL,
+        key_prefix=settings.REDIS_JOB_KEY_PREFIX,
+    )
+    await job_store.connect()
+
     if settings.RABBITMQ_ENABLED:
         rabbitmq_publisher = RabbitMQPublisher(
             url=settings.RABBITMQ_URL,
@@ -69,6 +78,8 @@ async def lifespan(app: FastAPI):
     yield
     if rabbitmq_publisher:
         await rabbitmq_publisher.close()
+    if job_store:
+        await job_store.close()
     log.info("estimation_service_shutdown")
 
 
@@ -93,6 +104,8 @@ attach_observability(app, service_name="estimation-service")
 
 async def _run_estimation_job(job_id: str, transcription: str) -> None:
     log = structlog.get_logger()
+    if job_store is None:
+        raise RuntimeError("Redis job store is not initialized")
     await job_store.set_processing(job_id)
     try:
         result = generate_estimation(transcription)
@@ -135,6 +148,8 @@ async def create_estimation_async(request: EstimationRequest, http_request: Requ
     settings = get_settings()
     correlation_id = http_request.state.correlation_id
     job_id = str(uuid.uuid4())
+    if job_store is None:
+        raise HTTPException(status_code=503, detail="Redis job store is not connected")
 
     await job_store.create_pending(job_id=job_id, correlation_id=correlation_id)
 
@@ -161,6 +176,8 @@ async def create_estimation_async(request: EstimationRequest, http_request: Requ
 @app.get("/internal/v1/jobs/{job_id}", response_model=AsyncEstimationStatus)
 async def get_estimation_job_status(job_id: str) -> AsyncEstimationStatus:
     """Return status for an asynchronous estimation job."""
+    if job_store is None:
+        raise HTTPException(status_code=503, detail="Redis job store is not connected")
     item = await job_store.get(job_id)
     if item is None:
         raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")

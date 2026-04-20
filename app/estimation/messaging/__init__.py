@@ -1,4 +1,4 @@
-from app.estimation.messaging.job_store import job_store
 from app.estimation.messaging.rabbitmq import RabbitMQPublisher
+from app.estimation.messaging.redis_job_store import RedisJobStore
 
-__all__ = ["RabbitMQPublisher", "job_store"]
+__all__ = ["RabbitMQPublisher", "RedisJobStore"]

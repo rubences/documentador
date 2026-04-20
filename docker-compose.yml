@@ -2,6 +2,20 @@
 # For production, remove bind mounts and use immutable tagged images.
 
 services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 5
+
   estimation-service:
     build: .
     container_name: estimation-service
@@ -12,9 +26,14 @@ services:
     environment:
       APP_MODULE: app.estimation.main:app
       APP_PORT: "8001"
+      RABBITMQ_ENABLED: "true"
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
     volumes:
       - ./app:/app/app
     command: sh -c "uvicorn app.estimation.main:app --host 0.0.0.0 --port 8001 --reload"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]

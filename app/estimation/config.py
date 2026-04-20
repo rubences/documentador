@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "gpt-4o-mini"
     APP_ENV: Literal["development", "staging", "production"] = "development"
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "DEBUG"
+    RABBITMQ_ENABLED: bool = False
+    RABBITMQ_URL: str = "amqp://guest:guest@rabbitmq:5672/"
+    RABBITMQ_EXCHANGE: str = "estimation.jobs"
+    RABBITMQ_QUEUE: str = "estimation.jobs.queue"
+    RABBITMQ_ROUTING_KEY: str = "estimation.requested"
 
     @model_validator(mode="after")
     def validate_api_key_for_provider(self) -> "Settings":

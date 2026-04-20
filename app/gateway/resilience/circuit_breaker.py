@@ -97,3 +97,10 @@ class CircuitBreaker:
         self._opened_until = time.monotonic() + self.recovery_timeout_seconds
         self._failure_count = 0
         self._half_open_success_count = 0
+
+    async def cleanup_state(self) -> None:
+        """Limpia el estado del circuit breaker (para testing o memoria)."""
+        async with self._lock:
+            # Solo resetear contadores, mantener estado
+            self._failure_count = 0
+            self._half_open_success_count = 0

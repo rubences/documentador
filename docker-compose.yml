@@ -7,13 +7,37 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
+    # ⚠️ PRODUCCIÓN: Habilitar password y TLS
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --tls-cert-file /certs/redis.crt
+      --tls-cert-key-file /certs/redis.key
+      --port 6379
+      --tls-port 6379
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "--tls", "--cacert", "/certs/ca.crt", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 30s
       timeout: 5s
       start_period: 10s
       retries: 5
+    # No exponer a host en producción
+    expose:
+      - "6379"
+    networks:
+      - estimation-network
+    # Recursos limitados
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -21,6 +45,14 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    environment:
+      # ⚠️ IMPORTANTE: En producción, usar variables de entorno
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      # Habilitar TLS
+      RABBITMQ_SSL_CERT_FILE: /certs/rabbitmq.crt
+      RABBITMQ_SSL_KEY_FILE: /certs/rabbitmq.key
+      RABBITMQ_SSL_CACERT_FILE: /certs/ca.crt
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
@@ -28,6 +60,21 @@ services:
       timeout: 10s
       start_period: 20s
       retries: 5
+    # Limitar conexiones
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 2048
+    networks:
+      - estimation-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   estimation-service:
     build: .
@@ -40,20 +87,27 @@ services:
       APP_MODULE: app.estimation.main:app
       APP_PORT: "8001"
       RABBITMQ_ENABLED: "true"
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      # ⚠️ PRODUCCIÓN: Usar переменables de entorno, NO hardcoded
+      RABBITMQ_URL: "${RABBITMQ_URL}"
+      RABBITMQ_USER: "${RABBITMQ_USER}"
+      RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
       RABBITMQ_RETRY_EXCHANGE: estimation.jobs.retry
       RABBITMQ_RETRY_QUEUE: estimation.jobs.retry.queue
       RABBITMQ_DLQ_EXCHANGE: estimation.jobs.dlq
       RABBITMQ_DLQ_QUEUE: estimation.jobs.dlq.queue
       RABBITMQ_MAX_RETRIES: "5"
       RABBITMQ_BASE_RETRY_DELAY_MS: "1000"
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: "${REDIS_URL}"
+      REDIS_JOB_TTL_SECONDS: "86400"
       OUTBOX_KEY_PREFIX: estimation:outbox
       OUTBOX_DISPATCH_BATCH_SIZE: "20"
       OUTBOX_DISPATCH_INTERVAL_SECONDS: "1.0"
-    volumes:
-      - ./app:/app/app
-    command: sh -c "uvicorn app.estimation.main:app --host 0.0.0.0 --port 8001 --reload"
+    # ⚠️ NO volumes en producción - imagen inmutable
+    # volumes:
+    #   - ./app:/app/app
+    # ❌ NO usar --reload en producción
+    # ❌ NO exponer puertos si no es necesario
+    command: sh -c "uvicorn app.estimation.main:app --host 0.0.0.0 --port 8001"
     depends_on:
       redis:
         condition: service_healthy
@@ -66,6 +120,16 @@ services:
       timeout: 5s
       start_period: 10s
       retries: 3
+    networks:
+      - estimation-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
 
   api-gateway:
     build: .
@@ -78,9 +142,10 @@ services:
       APP_MODULE: app.gateway.main:app
       APP_PORT: "8000"
       ESTIMATION_SERVICE_URL: http://estimation-service:8001
-    volumes:
-      - ./app:/app/app
-    command: sh -c "uvicorn app.gateway.main:app --host 0.0.0.0 --port 8000 --reload"
+    # ⚠️ NO volumes en producción
+    # volumes:
+    #   - ./app:/app/app
+    command: sh -c "uvicorn app.gateway.main:app --host 0.0.0.0 --port 8000"
     depends_on:
       estimation-service:
         condition: service_healthy
@@ -91,3 +156,21 @@ services:
       timeout: 5s
       start_period: 10s
       retries: 3
+    networks:
+      - estimation-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+# Redisolación de los servicios
+networks:
+  estimation-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"

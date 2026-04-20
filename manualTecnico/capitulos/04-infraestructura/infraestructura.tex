@@ -78,6 +78,27 @@ Valkey se utiliza como capa de caché en memoria compatible con Redis para reduc
 \item Políticas de memoria ajustadas al perfil de cada entorno.
 \end{itemize}
 
+\section{Almacenamiento de documentación (MinIO)}
+
+MinIO se emplea como almacenamiento de objetos compatible con S3 para custodiar artefactos documentales del proyecto (manuales PDF, anexos versionados y evidencias de entrega).
+
+\subsection*{Casos de uso}
+
+\begin{itemize}
+\item Publicación de manuales y documentos de soporte en un bucket dedicado.
+\item Versionado de entregables técnicos por prefijos y convenciones de nombre.
+\item Integración con herramientas de automatización para subida/descarga de artefactos.
+\end{itemize}
+
+\subsection*{Parámetros operativos}
+
+\begin{itemize}
+\item Endpoint API S3 compatible: \texttt{9000/tcp}.
+\item Consola de administración: \texttt{9001/tcp}.
+\item Bucket recomendado para documentación: \texttt{atlas-documentacion}.
+\item Control de acceso mediante credenciales de servicio y políticas por bucket/prefijo.
+\end{itemize}
+
 \section{Modelos de IA (Ollama)}
 
 El procesamiento de inteligencia artificial se ejecuta principalmente en el CPD municipal mediante Ollama, aprovechando capacidad GPU local y manteniendo soberanía del dato para cargas sensibles.

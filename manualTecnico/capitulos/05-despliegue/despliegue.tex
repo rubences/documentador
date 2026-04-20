@@ -12,6 +12,7 @@ Para desplegar la plataforma Atlas se requiere una base mínima de infraestructu
 \item RabbitMQ 3.x como bus de mensajería AMQP (incluyendo instancia IoT con MQTT en CPD).
 \item MariaDB 11.x para persistencia relacional.
 \item Valkey 8.x para caché y almacenamiento temporal.
+\item MinIO para almacenamiento de objetos S3 compatible orientado a documentación técnica.
 \item Ollama (on-premise) para capacidades LLM, OCR y embeddings en el puerto \texttt{11434}.
 \item NGINX para publicación HTTP/HTTPS y terminación TLS.
 \end{itemize}
@@ -26,10 +27,11 @@ Flujo recomendado:
 
 \begin{enumerate}
 \item Clonar los repositorios del ecosistema Atlas (\texttt{atlas-*} y \texttt{ferimer-*}) en el directorio de trabajo.
-\item Configurar variables de entorno para cada servicio (RabbitMQ, MariaDB, Valkey y endpoints internos).
-\item Levantar servicios de infraestructura compartida (RabbitMQ, MariaDB, Valkey y, cuando aplique, Ollama).
+\item Configurar variables de entorno para cada servicio (RabbitMQ, MariaDB, Valkey, MinIO y endpoints internos).
+\item Levantar servicios de infraestructura compartida (RabbitMQ, MariaDB, Valkey, MinIO y, cuando aplique, Ollama).
 \item Iniciar los microservicios de aplicación (API, CMS, scraping y servicios IA).
 \item Verificar conectividad extremo a extremo ejecutando una llamada API que dispare una operación RPC sobre RabbitMQ.
+\item Verificar disponibilidad de MinIO y creación del bucket documental definido por entorno.
 \item Revisar trazas y \textit{correlation id} para confirmar que el flujo de petición/respuesta es correcto.
 \end{enumerate}
 
@@ -62,6 +64,7 @@ Variables habituales:
 \item Conectividad AMQP: host, puerto, vhost (\texttt{/atlas}), usuario, contraseña.
 \item Persistencia: host/puerto de MariaDB, nombre de base de datos y credenciales.
 \item Caché: endpoint de Valkey y parámetros de expiración.
+\item Documentación: endpoint MinIO, bucket destino y prefijo de almacenamiento.
 \item IA: endpoint de Ollama, modelos por defecto y límites de timeout.
 \item Publicación: puertos HTTP/HTTPS y dominios para NGINX/API/CMS.
 \end{itemize}

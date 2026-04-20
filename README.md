@@ -53,6 +53,34 @@ Servicios:
 - Estimation service: <http://localhost:8001/health>
 - RabbitMQ Management: <http://localhost:15672>
 - Redis: <redis://localhost:6379/0>
+- MinIO API (S3 compatible): <http://localhost:9000>
+- MinIO Console: <http://localhost:9001>
+
+## Ejecutar ambos sistemas (aplicacion + documentacion en MinIO)
+
+1. Copiar variables base y ajustar credenciales:
+
+```bash
+cp .env.example .env
+```
+
+1. Levantar stack completo:
+
+```bash
+docker compose up --build
+```
+
+1. Verificar MinIO:
+
+- Consola: <http://localhost:9001>
+- Usuario: valor de MINIO_ROOT_USER
+- Password: valor de MINIO_ROOT_PASSWORD
+- Bucket de documentacion inicializado automaticamente: valor de MINIO_DOCS_BUCKET
+
+Con esto quedan ejecutandose en paralelo:
+
+- Sistema de microservicios (gateway + estimation-service + Redis + RabbitMQ)
+- Sistema de almacenamiento de documentacion (MinIO)
 
 Endpoints principales:
 

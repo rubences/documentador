@@ -2,16 +2,122 @@
 \label{cap:infraestructura}
 
 \section{RabbitMQ}
-% TODO: VHost /atlas, patrones RPC y Fire-and-Forget, configuración
+
+RabbitMQ constituye el bus de integración principal de Atlas y soporta tanto comunicaciones síncronas (RPC) como asíncronas (\textit{Fire-and-Forget}). Su uso transversal permite desacoplar productores y consumidores, reduciendo dependencias temporales entre microservicios.
+
+\subsection*{Topología lógica}
+
+La plataforma opera con tres contextos de mensajería:
+
+\begin{itemize}
+\item \textbf{RabbitMQ interno (on-premise)}: tráfico entre microservicios de procesamiento y servicios de IA.
+\item \textbf{RabbitMQ IoT + MQTT (on-premise)}: ingestión de eventos de sensores y dispositivos de ciudad.
+\item \textbf{RabbitMQ cloud (Azure)}: integración entre API pública, CMS y servicios expuestos en Internet.
+\end{itemize}
+
+El \textit{virtual host} de servicio para comunicaciones internas se define como \texttt{/atlas}, aislando permisos y recursos frente a otros contextos del broker.
+
+\subsection*{Patrones de uso}
+
+\begin{itemize}
+\item \textbf{RPC}: una petición publica en una cola de servicio y espera respuesta mediante \texttt{reply\_to} y \texttt{correlation\_id}.
+\item \textbf{Fire-and-Forget}: publicación de eventos de dominio sin bloqueo del emisor.
+\item \textbf{Enrutado por etiquetas}: los \textit{tags} canónicos de la ontología (\texttt{dominio:categoría:acción[:subtipo]}) se transforman a \textit{routing keys} AMQP mediante sustitución \texttt{:} $\rightarrow$ \texttt{.}.
+\end{itemize}
+
+\subsection*{Prácticas de configuración}
+
+\begin{itemize}
+\item Exchanges y colas declarados por servicio durante inicialización.
+\item Usuarios técnicos separados por rol (emisor, receptor, administración).
+\item Políticas de durabilidad y reintento adaptadas al tipo de mensaje.
+\item Restricción de permisos por vhost, exchange y patrón de routing key.
+\end{itemize}
 
 \section{Base de datos (MariaDB)}
-% TODO: Esquema, conexión, configuración
+
+MariaDB proporciona persistencia relacional para entidades de negocio, configuración editorial y metadatos de integración. En Atlas se despliega en ambos entornos (on-premise y cloud) para mantener autonomía operativa.
+
+\subsection*{Modelo de uso}
+
+\begin{itemize}
+\item Almacenamiento transaccional de contenidos estructurados del CMS.
+\item Persistencia de relaciones entre entidades de dominio y taxonomías.
+\item Soporte de consultas indexadas para consumo API y procesos batch.
+\end{itemize}
+
+\subsection*{Conectividad y operación}
+
+\begin{itemize}
+\item Puerto de servicio: \texttt{3306}.
+\item Acceso mediante credenciales por aplicación y principio de mínimo privilegio.
+\item Gestión de conexiones desde librerías de infraestructura (\textit{pooling} y reutilización).
+\item Copias de seguridad y políticas de retención definidas por entorno.
+\end{itemize}
+
+Las operaciones de escritura intensiva se desacoplan del plano de exposición pública mediante colas de eventos, reduciendo picos de carga directa sobre la base de datos.
 
 \section{Caché (Valkey)}
-% TODO: Uso en CMS, configuración
+
+Valkey se utiliza como capa de caché en memoria compatible con Redis para reducir latencias de lectura y descargar carga de MariaDB en operaciones repetitivas.
+
+\subsection*{Casos de uso}
+
+\begin{itemize}
+\item Caché de consultas frecuentes del CMS y de respuestas de lectura.
+\item Almacenamiento temporal de sesiones, tokens y artefactos de corta vida.
+\item Mecanismos de invalidación coordinada tras cambios editoriales.
+\end{itemize}
+
+\subsection*{Parámetros operativos}
+
+\begin{itemize}
+\item Puerto de servicio: \texttt{6379}.
+\item Estrategia de expiración basada en TTL por tipo de dato.
+\item Segmentación por prefijos de clave para evitar colisiones entre servicios.
+\item Políticas de memoria ajustadas al perfil de cada entorno.
+\end{itemize}
 
 \section{Modelos de IA (Ollama)}
-% TODO: Modelos disponibles (deepseek-ocr, gemma3, llama3.2), puerto 11434
 
-\section{Proxy inverso (Caddy)}
-% TODO: Configuración, puertos 80/443
+El procesamiento de inteligencia artificial se ejecuta principalmente en el CPD municipal mediante Ollama, aprovechando capacidad GPU local y manteniendo soberanía del dato para cargas sensibles.
+
+\subsection*{Capacidades funcionales}
+
+\begin{itemize}
+\item \textbf{LLM}: clasificación, resumen y extracción semántica de contenidos.
+\item \textbf{OCR}: transcripción de documentos e imágenes para su normalización posterior.
+\item \textbf{Embeddings}: vectorización de textos para búsqueda semántica y similitud.
+\end{itemize}
+
+\subsection*{Modelos y conectividad}
+
+\begin{itemize}
+\item Endpoint de servicio: \texttt{11434}.
+\item Modelos base operativos: \texttt{gemma3}, \texttt{deepseek-ocr}, modelos de embeddings compatibles.
+\item Integración vía microservicio \texttt{atlas-service-ollama} y mensajería AMQP.
+\end{itemize}
+
+La invocación de capacidades IA se encapsula en contratos de mensajería definidos en \textit{atlas-messaging-ontology}, permitiendo sustitución de modelos sin romper interfaces funcionales.
+
+\section{Proxy inverso (NGINX)}
+
+NGINX actúa como capa de entrada HTTP/HTTPS en ambos entornos y centraliza funciones de publicación, seguridad y encaminamiento hacia los servicios internos.
+
+\subsection*{Funciones principales}
+
+\begin{itemize}
+\item Terminación TLS y redirección obligatoria de HTTP a HTTPS.
+\item Enrutado por host/path hacia API Gateway, CMS y servicios auxiliares.
+\item Aplicación de cabeceras de seguridad y límites de tamaño de petición.
+\item Registro de accesos para auditoría y diagnóstico operativo.
+\end{itemize}
+
+\subsection*{Puertos y exposición}
+
+\begin{itemize}
+\item \texttt{80/tcp}: tráfico HTTP y redirección controlada.
+\item \texttt{443/tcp}: tráfico HTTPS productivo.
+\end{itemize}
+
+La configuración del proxy se versiona por entorno para separar certificados, dominios públicos y reglas de encaminamiento internas.

@@ -1,10 +1,43 @@
 \chapter{Arquitectura del sistema}
 \label{cap:arquitectura}
 
-% TODO: Diagrama general de arquitectura
-
 \section{Visión general}
-% TODO
+
+La arquitectura de Atlas se ha diseñado para cumplir cuatro objetivos estructurales: desacoplamiento entre servicios, escalado horizontal independiente, tolerancia a fallos por aislamiento de responsabilidades y trazabilidad extremo a extremo de cada operación funcional.
+
+La plataforma se organiza en dos dominios de despliegue:
+
+\begin{itemize}
+\item \textbf{Dominio cloud (Azure)}: alberga servicios de exposición pública como API Gateway y CMS.
+\item \textbf{Dominio on-premise (CPD municipal)}: ejecuta servicios internos, integración IoT, procesamiento IA y conectividad con sistemas corporativos.
+\end{itemize}
+
+Ambos dominios mantienen una arquitectura homogénea basada en contenedores y colas AMQP, permitiendo redistribuir cargas sin afectar al contrato funcional de los microservicios.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+		node distance=1.6cm,
+		box/.style={draw, rounded corners, align=center, minimum width=3.6cm, minimum height=1cm},
+		flow/.style={->, thick}
+	]
+	\node[box] (clients) {Clientes web / apps / IoT};
+	\node[box, below=of clients] (api) {API Gateway\\(atlas-api)};
+	\node[box, below left=of api, xshift=-1.8cm] (broker) {RabbitMQ\\vhost /atlas};
+	\node[box, below right=of api, xshift=1.8cm] (cms) {CMS\\(atlas-cms)};
+	\node[box, below=of broker] (services) {Microservicios de dominio\\(scraping, IA, conectores)};
+	\node[box, right=of services, xshift=1.5cm] (data) {MariaDB / Valkey /\ Ollama};
+
+	\draw[flow] (clients) -- (api);
+	\draw[flow] (api) -- node[left] {RPC / F\&F} (broker);
+	\draw[flow] (api) -- (cms);
+	\draw[flow] (broker) -- (services);
+	\draw[flow] (services) -- (data);
+	\draw[flow] (cms) -- (data);
+\end{tikzpicture}
+\caption{Vista lógica de la arquitectura Atlas}
+\label{fig:arquitectura-general}
+\end{figure}
 
 \section{Patrones de diseño}\label{sec:patrones}
 \subsection{Microservicios}\label{sec:microservicios}
@@ -35,37 +68,63 @@ Sistema de colas compatibles con \textbf{MQTT} (utilizando RabbitMQ) para la rec
 
 \subsection{Comunicación basada en eventos (RPC y Fire-and-Forget)}
 
-De cara a mantener que todos nuestros microservicios sean capades de escalar elásticamente en base a las necesidades de cada momento, se diseñan de manera que cumplan dos casúisticas: `\textit{stateless}' y `\textit{desacoplados}'.
+De cara a mantener que todos los microservicios sean capaces de escalar elásticamente en base a las necesidades de cada momento, se diseñan para cumplir dos premisas: \textit{stateless} y \textit{desacoplados}.
 
 Para poder interconectar todos los microservicios se hace uso de eventos y para su gestión descentralizada se dispone de una plataforma de colas basada en el protocolo \textbf{AMQP} (utilizando RabbitMQ).
 
-Dentro de la pataforma \textbf{AMQP} se disponde de dos tipos de eventos:
+Dentro de la plataforma \textbf{AMQP} se dispone de dos tipos de eventos:
 
 \begin{itemize}
 	\item RPC: Eventos que esperan una respuesta (\textit{Remote Procedure Call}) y por tanto son síncronos.
 	\item Fire\&Forget: Eventos que no esperan una respuesta y por tanto son asíncronos.
 \end{itemize}
 
-Todos los microservicios implementados en la plataforma hacen uso de la librería común `Ferimer Queue Manager' (\ref{sec:ferimer-queue-manager}) que 
+Todos los microservicios implementados en la plataforma hacen uso de la librería común \textit{Ferimer Queue Manager} (\ref{sec:ferimer-queue-manager}), que proporciona una interfaz unificada para productores y consumidores de eventos AMQP.
 
-Esta librería abstrae de la complejidad relativa a la gestión de las comunicaciones de la plataforma \textbf{Atlas}.
+Esta librería abstrae la complejidad relativa a la gestión de las comunicaciones de la plataforma \textbf{Atlas}.
 
 \subsection{Ontología de mensajería}
 
 La librería `Atlas Messaging Ontology' (\ref{sec:atlas-messaging-ontology}) define todos los posibles mensajes que se transmiten a través de las colas AMQP de la plataforma así como sus esquemas JSON (\textit{JSON Schemas}) utilizados para validar el correcto formato de las peticiones y sus correspondientes respuestas.
 
 \section{Diagrama de flujo de datos}
-% TODO: Diagrama cliente → API → RabbitMQ → servicios
 
+El flujo principal de datos sigue un patrón de entrada HTTP, normalización de petición, publicación AMQP, ejecución del servicio de dominio y respuesta consolidada. En el caso de eventos asíncronos, la respuesta no bloquea la petición inicial y la trazabilidad se realiza por \textit{correlation id}.
+
+\begin{figure}[H]
+\centering
 \begin{tikzpicture}[
+		node distance=1.8cm,
+		proc/.style={draw, rounded corners, align=center, minimum width=3.4cm, minimum height=0.9cm},
+		flow/.style={->, thick}
 	]
-	\node[] {API GW};
-	\node[] {RabbitMQ};
-	\node[] {CalendarScrapping};
-	\node[] {LLM};
-	\node[] {OCR};
-	\node[] {Ollama};
+	\node[proc] (client) {Cliente};
+	\node[proc, right=of client] (api) {API Gateway};
+	\node[proc, right=of api] (broker) {RabbitMQ};
+	\node[proc, right=of broker] (service) {Servicio de dominio};
+	\node[proc, below=of service] (ia) {Servicio IA / OCR};
+
+	\draw[flow] (client) -- node[above] {HTTP/JSON} (api);
+	\draw[flow] (api) -- node[above] {tag + schema} (broker);
+	\draw[flow] (broker) -- node[above] {routing key} (service);
+	\draw[flow] (service) -- node[right] {invocación} (ia);
+	\draw[flow] (service) -- ++(0,-1.5) -| node[below] {respuesta RPC} (api);
+	\draw[flow] (api) -- node[below] {HTTP response} (client);
 \end{tikzpicture}
+\caption{Flujo de datos principal cliente $\rightarrow$ API $\rightarrow$ RabbitMQ $\rightarrow$ servicios}
+\label{fig:flujo-datos}
+\end{figure}
 
 \section{Seguridad y control de acceso}
-% TODO
+
+La seguridad de la plataforma se implementa por capas, combinando controles de red, validación semántica de mensajes y segmentación de responsabilidades.
+
+\begin{itemize}
+\item \textbf{Perímetro y publicación}: NGINX actúa como punto de entrada en ambos entornos y centraliza terminación TLS, redirecciones y cabeceras de seguridad.
+\item \textbf{Aislamiento de servicios}: cada microservicio se despliega como pod independiente con permisos mínimos y sin estado local persistente.
+\item \textbf{Control de acceso a broker}: RabbitMQ separa cargas por vhosts y credenciales de servicio, limitando permisos de publicación/consumo por cola y exchange.
+\item \textbf{Validación de contratos}: todas las peticiones y respuestas AMQP se validan contra \textit{JSON Schemas} de \textit{atlas-messaging-ontology}, reduciendo riesgos de inyección y formatos maliciosos.
+\item \textbf{Trazabilidad}: el uso de \textit{correlation id} permite auditoría funcional de cada intercambio RPC y facilita diagnóstico de incidentes.
+\end{itemize}
+
+Este enfoque permite alinear la seguridad operativa con el principio de mínimo privilegio y con la naturaleza distribuida de la arquitectura orientada a eventos.

@@ -15,14 +15,30 @@ def _utc_now_iso() -> str:
 class RedisJobStore:
     """Redis-backed job status store for async estimations."""
 
-    def __init__(self, redis_url: str, key_prefix: str = "estimation:job") -> None:
+    def __init__(
+        self,
+        redis_url: str,
+        key_prefix: str = "estimation:job",
+        ttl_seconds: int = 86400,
+    ) -> None:
         self.redis_url = redis_url
         self.key_prefix = key_prefix
+        self.ttl_seconds = ttl_seconds
         self._redis: Redis | None = None
 
     async def connect(self) -> None:
         self._redis = Redis.from_url(self.redis_url, decode_responses=True)
         await self._redis.ping()
+
+    async def ping(self) -> bool:
+        """Verifica conexión a Redis."""
+        try:
+            if self._redis:
+                await self._redis.ping()
+                return True
+        except Exception:
+            pass
+        return False
 
     async def close(self) -> None:
         if self._redis is not None:
@@ -41,7 +57,12 @@ class RedisJobStore:
 
     async def _save(self, job_id: str, payload: dict) -> None:
         redis = self._ensure_client()
-        await redis.set(self._key(job_id), json.dumps(payload))
+        # Usar SET con EX para agregar TTL automáticamente
+        await redis.set(
+            self._key(job_id),
+            json.dumps(payload),
+            ex=self.ttl_seconds,
+        )
 
     def _ensure_client(self) -> Redis:
         if self._redis is None:

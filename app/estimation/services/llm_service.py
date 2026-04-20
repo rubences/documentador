@@ -2,6 +2,7 @@ import structlog
 
 from app.context.examples import ESTIMATION_EXAMPLES, format_examples_for_prompt
 from app.estimation.config import get_settings
+from app.shared.security import InputSanitizer
 
 log = structlog.get_logger()
 
@@ -37,8 +38,31 @@ def build_system_prompt() -> str:
 
 
 def generate_estimation(transcription: str) -> dict:
-    """Generate a software estimation from a meeting transcription using the configured LLM."""
+    """
+    Generate a software estimation from a meeting transcription using the configured LLM.
+
+    Args:
+        transcription: Meeting transcription text (should be pre-sanitized)
+
+    Returns:
+        Dict with estimation, model, provider, and usage info
+
+    Raises:
+        LLMServiceError: If the LLM call fails
+    """
     settings = get_settings()
+
+    # Sanitizar input como defensa en profundidad
+    sanitized_transcription = InputSanitizer.sanitize_transcription(transcription)
+
+    # Detectar posible intento de inyección
+    if InputSanitizer.detect_injection_attempt(transcription):
+        log.warning(
+            "possible_injection_detected",
+            original_length=len(transcription),
+            sanitized_length=len(sanitized_transcription),
+        )
+
     system_prompt = build_system_prompt()
 
     log.info("generating_estimation", provider=settings.LLM_PROVIDER, model=settings.LLM_MODEL)
@@ -48,12 +72,12 @@ def generate_estimation(transcription: str) -> dict:
             return _call_openai(
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": transcription},
+                    {"role": "user", "content": sanitized_transcription},
                 ],
             )
         return _call_anthropic(
             system=system_prompt,
-            user_message=transcription,
+            user_message=sanitized_transcription,
         )
     except LLMServiceError:
         raise

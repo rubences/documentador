@@ -1,12 +1,40 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.estimation.config import get_settings
 
 
 class EstimationRequest(BaseModel):
     """Incoming request containing a meeting transcription to estimate."""
 
-    transcription: str = Field(..., min_length=50, description="Meeting transcription text")
+    transcription: str = Field(
+        ...,
+        min_length=50,
+        max_length=25000,  # ~25k tokens máximo
+        description="Meeting transcription text (50-25000 chars)",
+    )
+
+    @field_validator("transcription", mode="before")
+    @classmethod
+    def validate_transcription_length(cls, v: str) -> str:
+        """Valida que la transcripción no exceda el máximo configurado."""
+        if not v:
+            return v
+
+        # Obtener configuración
+        try:
+            settings = get_settings()
+            max_length = settings.TRANSCRIPTION_MAX_LENGTH
+        except Exception:
+            max_length = 25000
+
+        if len(v) > max_length:
+            raise ValueError(
+                f"Transcription exceeds maximum length of {max_length} characters"
+            )
+
+        return v
 
 
 class TokenUsage(BaseModel):

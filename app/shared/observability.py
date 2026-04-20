@@ -1,3 +1,4 @@
+import re
 import time
 import uuid
 
@@ -5,6 +6,19 @@ import structlog
 from fastapi import FastAPI, Request
 from prometheus_client import Counter, Histogram, make_asgi_app
 from starlette.responses import Response
+
+# Sanitizar path para metricas - solo caracteres seguros
+_METRIC_PATH_PATTERN = re.compile(r"[^a-zA-Z0-9\-_./]")
+
+
+def _sanitize_path(path: str) -> str:
+    """Sanitiza el path para usar como label en Prometheus."""
+    # Truncar paths muy largos
+    if len(path) > 200:
+        path = path[:200]
+    # Reemplazar caracteres no seguros
+    return _METRIC_PATH_PATTERN.sub("_", path)
+
 
 _REQUEST_COUNTER = Counter(
     "http_requests_total",
@@ -42,15 +56,17 @@ def attach_observability(app: FastAPI, service_name: str) -> None:
 
         start = time.perf_counter()
         response = Response(status_code=500)
-        path = request.url.path
+        # Sanitizar path para prevenir injection en metricas
+        raw_path = request.url.path
+        safe_path = _sanitize_path(raw_path)
         try:
             response = await call_next(request)
             return response
         finally:
             duration = time.perf_counter() - start
             status_code = str(response.status_code)
-            _REQUEST_COUNTER.labels(service_name, request.method, path, status_code).inc()
-            _REQUEST_LATENCY.labels(service_name, request.method, path).observe(duration)
+            _REQUEST_COUNTER.labels(service_name, request.method, safe_path, status_code).inc()
+            _REQUEST_LATENCY.labels(service_name, request.method, safe_path).observe(duration)
 
             response.headers["x-request-id"] = request_id
             response.headers["x-correlation-id"] = correlation_id

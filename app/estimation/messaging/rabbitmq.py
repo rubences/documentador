@@ -145,13 +145,18 @@ class RabbitMQPublisher:
     ) -> None:
         if not self._retry_exchange:
             raise RuntimeError("Retry exchange is not initialized")
+
+        # Máximo delay de 5 minutos para prevenir mensajes'atascados'
+        max_delay_ms = 300000  # 5 minutos
+        safe_delay_ms = min(delay_ms, max_delay_ms)
+
         body = json.dumps(payload).encode("utf-8")
         retry_message = Message(
             body=body,
             correlation_id=correlation_id,
             delivery_mode=2,
             headers={"x-retry-count": retry_count},
-            expiration=str(delay_ms),
+            expiration=str(safe_delay_ms),
         )
         await self._retry_exchange.publish(retry_message, routing_key=self.routing_key)
 

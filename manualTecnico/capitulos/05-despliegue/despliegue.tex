@@ -2,16 +2,83 @@
 \label{cap:despliegue}
 
 \section{Requisitos del sistema}
-% TODO: Node.js 20+, Docker 24+, RabbitMQ, Ollama
+
+Para desplegar la plataforma Atlas se requiere una base mínima de infraestructura y versiones de \textit{runtime} coherentes entre entornos.
+
+\begin{itemize}
+\item Node.js 20 o superior para la ejecución de microservicios y utilidades de build.
+\item Docker 24 o superior para empaquetado y despliegue de contenedores.
+\item Cluster Kubernetes (on-premise y/o cloud) para orquestación de pods stateless.
+\item RabbitMQ 3.x como bus de mensajería AMQP (incluyendo instancia IoT con MQTT en CPD).
+\item MariaDB 11.x para persistencia relacional.
+\item Valkey 8.x para caché y almacenamiento temporal.
+\item Ollama (on-premise) para capacidades LLM, OCR y embeddings en el puerto \texttt{11434}.
+\item NGINX para publicación HTTP/HTTPS y terminación TLS.
+\end{itemize}
+
+En entornos de producción se recomienda separar credenciales, certificados y configuración por dominio funcional (API pública, CMS, servicios internos e IoT).
 
 \section{Entorno de desarrollo}
-% TODO: Pasos para arrancar el stack completo en local
+
+El entorno local está orientado a validar cambios funcionales y de integración antes de promocionarlos a preproducción o producción.
+
+Flujo recomendado:
+
+\begin{enumerate}
+\item Clonar los repositorios del ecosistema Atlas (\texttt{atlas-*} y \texttt{ferimer-*}) en el directorio de trabajo.
+\item Configurar variables de entorno para cada servicio (RabbitMQ, MariaDB, Valkey y endpoints internos).
+\item Levantar servicios de infraestructura compartida (RabbitMQ, MariaDB, Valkey y, cuando aplique, Ollama).
+\item Iniciar los microservicios de aplicación (API, CMS, scraping y servicios IA).
+\item Verificar conectividad extremo a extremo ejecutando una llamada API que dispare una operación RPC sobre RabbitMQ.
+\item Revisar trazas y \textit{correlation id} para confirmar que el flujo de petición/respuesta es correcto.
+\end{enumerate}
+
+La validación local debe incluir escenarios síncronos (RPC) y asíncronos (Fire-and-Forget), así como pruebas básicas de esquemas JSON en petición y respuesta.
 
 \section{Entorno de producción}
-% TODO: Docker Compose, variables de entorno, secrets
+
+En producción se despliegan contenedores inmutables sobre Kubernetes, manteniendo separación entre entorno on-premise y cloud.
+
+Pautas operativas:
+
+\begin{itemize}
+\item Construcción de imágenes versionadas por servicio y promoción por entornos.
+\item Inyección de configuración mediante variables de entorno y \textit{ConfigMaps}.
+\item Gestión de secretos (credenciales, tokens, certificados) en mecanismos de \textit{secrets} del cluster.
+\item Definición de \textit{liveness/readiness probes} para facilitar reinicio automático y balanceo saludable.
+\item Estrategia de despliegue progresivo (\textit{rolling update}) para minimizar indisponibilidad.
+\item Observabilidad centralizada con métricas, logs y trazabilidad por \textit{correlation id}.
+\end{itemize}
+
+Cuando se utilicen composiciones tipo Docker Compose para entornos de integración o staging, deben tratarse como apoyo de validación, no como mecanismo principal de operación productiva.
 
 \section{Configuración de los servicios}
-% TODO: Ficheros config/default.cjs, variables de entorno relevantes
+
+La configuración se organiza por servicio y por entorno. Como principio general, los valores por defecto residen en ficheros de configuración versionados (por ejemplo, \texttt{config/default.cjs}) y los valores sensibles se externalizan por variables de entorno.
+
+Variables habituales:
+
+\begin{itemize}
+\item Conectividad AMQP: host, puerto, vhost (\texttt{/atlas}), usuario, contraseña.
+\item Persistencia: host/puerto de MariaDB, nombre de base de datos y credenciales.
+\item Caché: endpoint de Valkey y parámetros de expiración.
+\item IA: endpoint de Ollama, modelos por defecto y límites de timeout.
+\item Publicación: puertos HTTP/HTTPS y dominios para NGINX/API/CMS.
+\end{itemize}
+
+Se recomienda mantener un inventario de variables por repositorio, junto con ejemplos de \texttt{.env} sin secretos, para facilitar despliegues reproducibles.
 
 \section{Publicación de librerías}
-% TODO: GitHub Packages, autenticación con PAT
+
+Las librerías compartidas del ecosistema (especialmente \texttt{ferimer-*}) se publican en GitHub Packages con versionado semántico.
+
+Proceso recomendado:
+
+\begin{enumerate}
+\item Incrementar versión siguiendo SemVer (\textit{patch}, \textit{minor} o \textit{major}).
+\item Generar \textit{changelog} técnico con cambios funcionales y de compatibilidad.
+\item Publicar paquete en el registro privado de GitHub Packages.
+\item Consumir la nueva versión desde servicios dependientes y ejecutar batería de regresión.
+\end{enumerate}
+
+La autenticación para publicación/consumo se realiza mediante \textit{Personal Access Token} (PAT) con permisos mínimos de lectura/escritura de paquetes según rol.

@@ -2,19 +2,93 @@
 \label{cap:desarrollo}
 
 \section{Estructura de repositorios}
-% TODO: atlas-*, ferimer-*, convenciones de nomenclatura
+
+El ecosistema Atlas se organiza en dos familias de repositorios:
+
+\begin{itemize}
+\item \textbf{Servicios de negocio} (prefijo \texttt{atlas-}): API, CMS, scraping y capacidades IA.
+\item \textbf{Librerías de infraestructura} (prefijo \texttt{ferimer-}): colas, endpoints y acceso a base de datos.
+\end{itemize}
+
+Convenciones recomendadas:
+
+\begin{itemize}
+\item Nombres de repositorio en minúsculas y separados por guiones.
+\item Módulos desacoplados por responsabilidad única.
+\item Contratos JSON y documentación técnica versionados en el mismo ciclo que el código.
+\item Dependencias compartidas centralizadas en librerías comunes para evitar duplicidad de lógica.
+\end{itemize}
 
 \section{Añadir un nuevo endpoint a la API}
-% TODO: Definición de endpoint JSON, routingKey, schemas request/response
+
+Para incorporar un endpoint nuevo en la API Gateway se recomienda el siguiente flujo:
+
+\begin{enumerate}
+\item Definir el contrato del endpoint (método HTTP, ruta, parámetros y códigos de respuesta).
+\item Asociar la operación a un tag de ontología con formato \texttt{dominio:categoría:acción[:subtipo]}.
+\item Añadir/actualizar los esquemas \texttt{request} y \texttt{response} en \texttt{atlas-messaging-ontology}.
+\item Configurar el endpoint declarativo en la API para mapearlo a su \textit{routing key} AMQP.
+\item Activar validación AJV para entrada/salida y verificar errores de contrato.
+\item Probar el flujo completo en modo RPC verificando \texttt{correlation\_id} y \texttt{reply\_to}.
+\end{enumerate}
+
+Este procedimiento asegura consistencia entre interfaz HTTP, mensajería interna y validación de datos.
 
 \section{Añadir un nuevo scraper}
-% TODO: Extender BaseScrapper / ICSScrapper / FBScrapper
+
+Los scrapers se extienden a partir de un contrato base común para facilitar reutilización y trazabilidad.
+
+Pasos recomendados:
+
+\begin{enumerate}
+\item Implementar un nuevo adaptador extendiendo \texttt{BaseScrapper}.
+\item Reutilizar \texttt{ICSScrapper} o \texttt{FBScrapper} como referencia cuando la fuente sea similar.
+\item Normalizar campos obligatorios (título, fecha, ubicación, fuente, URL, idioma).
+\item Gestionar deduplicación y control de fechas para evitar eventos repetidos.
+\item Publicar resultado en formato uniforme para su validación y consumo posterior.
+\item Registrar logs de extracción para diagnóstico de cambios en la fuente origen.
+\end{enumerate}
+
+Cada nuevo scraper debe poder activarse o desactivarse sin impactar al resto del pipeline.
 
 \section{Añadir un nuevo servicio RabbitMQ}
-% TODO: Nuevo receiver, nuevo schema en ontología, nuevo routing key
+
+La incorporación de un nuevo servicio AMQP requiere sincronizar implementación, contratos y enrutado.
+
+\begin{enumerate}
+\item Definir el nuevo dominio funcional y su tag de ontología.
+\item Crear esquemas \texttt{request/response} en \texttt{atlas-messaging-ontology}.
+\item Implementar un \textit{receiver} usando \texttt{AMQP\_RPC\_Receiver} o \texttt{AMQP\_FireAndForget\_Receiver}.
+\item Declarar exchange, cola y binding con \textit{routing key} correspondiente.
+\item Validar payloads entrantes y respuestas contra los esquemas oficiales.
+\item Probar interoperabilidad desde \textit{emitters} de API u otros microservicios.
+\end{enumerate}
+
+El servicio debe mantenerse stateless y sin dependencias implícitas de orden temporal con otros consumidores.
 
 \section{Convenciones de código}
-% TODO: Prettier, ESM, pre-commit hooks, versionado semántico
+
+Para mantener coherencia entre repositorios se establecen las siguientes convenciones:
+
+\begin{itemize}
+\item Módulos JavaScript en formato ESM.
+\item Formateo automático con Prettier en CI y en desarrollo local.
+\item Reglas de calidad y validación previas a commit mediante \textit{pre-commit hooks}.
+\item Mensajes de commit orientados a cambio funcional y versionado semántico para librerías compartidas.
+\item Separación clara entre configuración por defecto y secretos de entorno.
+\end{itemize}
+
+La aplicación consistente de estas pautas reduce deuda técnica y facilita mantenimiento transversal.
 
 \section{Tests}
-% TODO: Node.js test runner, Jest, k6 para carga
+
+La estrategia de pruebas combina validación unitaria, integración y carga.
+
+\begin{itemize}
+\item \textbf{Unitarias}: lógica de transformación, utilidades y adaptadores aislados.
+\item \textbf{Integración}: contratos AMQP, validación de esquemas y conectividad con servicios de infraestructura.
+\item \textbf{End-to-end}: recorrido completo API $\rightarrow$ RabbitMQ $\rightarrow$ microservicio $\rightarrow$ respuesta.
+\item \textbf{Carga}: pruebas de rendimiento con \texttt{k6} para medir latencias, throughput y comportamiento bajo estrés.
+\end{itemize}
+
+En el ecosistema Node.js pueden coexistir el \textit{Node.js test runner} y Jest según la madurez o naturaleza de cada repositorio, siempre con cobertura mínima definida por equipo y ejecución automatizada en CI.

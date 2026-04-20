@@ -1,38 +1,92 @@
 \chapter{Módulos de la plataforma}
 \label{cap:modulos}
 
-A lo largo de este capítulo se detallarán los aspectos más relevantes de cada uno de los microservicios desplegados en la plataforma de ``Smart city'' de San Lorenzo de el Escorial.
+A lo largo de este capítulo se detallan los aspectos más relevantes de cada uno de los microservicios desplegados en la plataforma de ``Smart City'' de San Lorenzo de El Escorial.
 
 \section{API Gateway (\texttt{atlas-api})}
 
-Éste microservicio forma parte de los servicios de la ``vista'' (\ref{sec:microservicios}) y está compuesto por dos contenedores (\ref{cap:despliegue}), por un lado se dispone de un contendor basado en NGINX que actúa como proxy inverso y terminador SSL, en segundo lugar se expone un microservicio que implementa un API REST que da acceso a las aplicaciones y a los servicios del ayuntamiento para la gestión de la platafomra.
+Este microservicio forma parte de los servicios de ``vista'' (\ref{sec:microservicios}) y está compuesto por dos contenedores (\ref{cap:despliegue}): un contenedor basado en NGINX que actúa como proxy inverso y terminador SSL, y un contenedor de aplicación que implementa la API REST para aplicaciones ciudadanas y servicios municipales.
 
-Este microservicio se implementa con Node.JS y el framework Fastify. Las peticiones HTTP recibidas son enrutadas a una cola AMQP haciendo uso de `Ferimer Endpoints Manager' (\ref{sec:ferimer-endpoints-manager})  y `Ferimer Queue Manager' (\ref{sec:ferimer-queue-manager})  valiando los documentos JSON intercambaidos con `Atlas Messaging Ontology' (\ref{sec:atlas-messaging-ontology}) 
+Se implementa en Node.js sobre Fastify 5 y expone su interfaz en el puerto \texttt{3000}. Las peticiones HTTP recibidas se resuelven mediante definición declarativa de endpoints y se traducen a mensajes AMQP usando \textit{ferimer-endpoints-manager} (\ref{sec:ferimer-endpoints-manager}) y \textit{ferimer-queue-manager} (\ref{sec:ferimer-queue-manager}).
 
-% TODO: Fastify, endpoints-manager, validación AJV, RPC emitter, puerto 3000
+Cada endpoint define su contrato de entrada/salida en esquemas JSON validados con AJV. Para operaciones síncronas se utiliza un emisor RPC con \textit{correlation id}, mientras que para eventos de notificación se emplea publicación \textit{Fire-and-Forget}. El resultado es una puerta de enlace HTTP desacoplada de la lógica de negocio y alineada con la ontología de mensajería (\ref{sec:atlas-messaging-ontology}).
 
 \section{CMS (\texttt{atlas-cms})}
-% TODO: Strapi 5, MariaDB, Valkey, AEMET, i18n, puerto 1337
+
+\texttt{atlas-cms} es el sistema de gestión de contenidos editorial y se basa en Strapi 5. Opera sobre MariaDB para persistencia relacional y utiliza Valkey como capa de caché para reducir latencia en lecturas frecuentes.
+
+El servicio se publica en el puerto \texttt{1337} y soporta gestión multilenguaje (i18n), permitiendo mantener contenidos en varios idiomas desde un mismo panel. Además, el CMS puede incorporar fuentes externas de interés municipal (por ejemplo, información meteorológica de AEMET) para enriquecer páginas y componentes consumidos por la web pública.
+
+Desde la perspectiva arquitectónica, el CMS se integra con el resto del ecosistema sin romper el desacoplamiento: las operaciones editoriales persisten en su plano de datos y las integraciones con otros módulos se realizan por API o mensajería según el caso de uso.
 
 \section{Servicio de Inteligencia Artificial (\texttt{atlas-service-ollama})}
-% TODO: LLM, OCR, embeddings, routing keys, RPC receiver
+
+\texttt{atlas-service-ollama} centraliza las capacidades de inteligencia artificial de la plataforma y actúa como consumidor AMQP especializado. El servicio encapsula el acceso a Ollama para tres familias funcionales:
+
+\begin{itemize}
+\item \textbf{LLM}: generación y transformación de texto.
+\item \textbf{OCR}: extracción de texto desde imágenes o documentos.
+\item \textbf{Embeddings}: vectorización para búsqueda semántica y similitud.
+\end{itemize}
+
+Las peticiones llegan por colas RPC definidas por \textit{routing keys} derivadas de los tags de la ontología (por ejemplo, \texttt{tools:ai:llm} o \texttt{tools:ocr:image:file}). El servicio opera como \textit{RPC receiver}, valida payloads contra esquemas oficiales y devuelve respuestas estructuradas para mantener contratos estables entre productores y consumidores.
 
 \section{Scraping de eventos (\texttt{atlas-calendar-scrapping})}
-% TODO: BaseScrapper, ICSScrapper, FBScrapper, listado de scrappers
+
+\texttt{atlas-calendar-scrapping} se encarga de capturar y normalizar información de eventos desde fuentes heterogéneas (sitios web, calendarios y redes sociales) para su posterior publicación en la plataforma.
+
+La arquitectura del servicio sigue un patrón de especialización por adaptador:
+
+\begin{itemize}
+\item \texttt{BaseScrapper}: contrato común para extracción, transformación y normalización.
+\item \texttt{ICSScrapper}: integración de calendarios en formato ICS.
+\item \texttt{FBScrapper}: extracción de eventos desde fuentes basadas en Facebook.
+\end{itemize}
+
+Cada \textit{scrapper} implementa su lógica específica de autenticación, parseo y tratamiento de fechas, pero publica una salida uniforme para facilitar validación y consumo por API/CMS. Este enfoque permite añadir nuevas fuentes sin modificar el pipeline completo: basta con extender \texttt{BaseScrapper} y registrar el nuevo adaptador.
 
 \section{Librerías de infraestructura}
 
 \subsection{\texttt{ferimer-queue-manager}}\label{sec:ferimer-queue-manager}
 
 (\url{https://github.com/Proyecto-Atlas/Ferimer-Queue-Manager})
-% TODO: AMQP_RPC_Emitter/Receiver, AMQP_FireAndForget_Emitter/Receiver, vhost /atlas
+
+Librería de abstracción AMQP utilizada por los microservicios de Atlas para estandarizar conexión, publicación y consumo de mensajes sobre RabbitMQ.
+
+Expone cuatro clases base para cubrir los patrones de integración principales:
+
+\begin{itemize}
+\item \texttt{AMQP\_RPC\_Emitter}
+\item \texttt{AMQP\_RPC\_Receiver}
+\item \texttt{AMQP\_FireAndForget\_Emitter}
+\item \texttt{AMQP\_FireAndForget\_Receiver}
+\end{itemize}
+
+La configuración habitual de Atlas utiliza el vhost \texttt{/atlas}, junto con nomenclatura de exchanges/colas alineada con los tags de la ontología de mensajes.
 
 \subsection{\texttt{ferimer-endpoints-manager}}\label{sec:ferimer-endpoints-manager}
-% TODO: Carga dinámica de endpoints, validación, path params
+
+Librería para carga dinámica de endpoints HTTP en Fastify a partir de definiciones declarativas. Permite desacoplar la descripción de rutas de su implementación interna de mensajería.
+
+Incluye validación de entrada y salida mediante esquemas JSON (AJV), soporte de parámetros de ruta (\textit{path params}) y mapeo de cada endpoint a su correspondiente tag/routing key AMQP.
+
+Este mecanismo reduce código repetitivo en la API Gateway y facilita incorporar nuevas operaciones sin modificar el núcleo del servidor HTTP.
+
 (\url{https://github.com/Proyecto-Atlas/Ferimer-Endpoints-Manager})
 
 \subsection{\texttt{ferimer-database-manager}}
-% TODO: Abstracción MariaDB, sqlstring, connection pooling
+
+Librería de acceso a datos que encapsula la interacción con MariaDB y homogeniza el uso de conexión en los distintos servicios de Atlas.
+
+Sus objetivos principales son:
+
+\begin{itemize}
+\item ofrecer una interfaz única para operaciones SQL,
+\item minimizar errores de composición de consultas mediante utilidades de escape (\texttt{sqlstring}),
+\item gestionar \textit{connection pooling} para mejorar rendimiento y estabilidad.
+\end{itemize}
+
+Esta capa simplifica el desarrollo de módulos de persistencia y centraliza buenas prácticas de acceso a base de datos.
 
 \subsection{\texttt{atlas-messaging-ontology}}\label{sec:atlas-messaging-ontology}
 

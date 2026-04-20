@@ -1,0 +1,74 @@
+# OS and editor noise
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*.tmp
+*.bak
+*.orig
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+dist/
+build/
+site/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# GraphRAG generated outputs and caches
+output/
+cache/
+.graphrag/
+artifacts/
+
+# OpenCode local state
+.opencode/cache/
+.opencode/tmp/
+
+# Node and JS tooling
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# JetBrains / IDE
+.idea/
+*.iml
+.vscode/
+
+# Logs and reports
+*.log
+reports/*.tmp
+
+# Data staging and transient assets
+data/staging/*
+!data/staging/.gitkeep
+
+# Local query and generated docs artifacts
+docs/writerside/.cache/
+docs/writerside/out/

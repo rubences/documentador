@@ -1,29 +1,46 @@
-# Docker Compose configuration for local development.
-# For production, remove the bind mount and the --reload flag.
+# Docker Compose configuration for local development with microservices.
+# For production, remove bind mounts and use immutable tagged images.
 
 services:
-  estimator:
+  estimation-service:
     build: .
-    container_name: estimator
+    container_name: estimation-service
     ports:
-      - "8000:8000"
-
-    # Load environment variables (API keys, config) from the local .env file.
+      - "8001:8001"
     env_file:
       - .env
-
-    # Bind-mount the app/ directory so code changes are reflected immediately
-    # inside the container without rebuilding the image.
+    environment:
+      APP_MODULE: app.estimation.main:app
+      APP_PORT: "8001"
     volumes:
       - ./app:/app/app
-
-    # Override the default CMD to enable auto-reload on file changes.
-    # Remove --reload for production deployments.
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
+    command: sh -c "uvicorn app.estimation.main:app --host 0.0.0.0 --port 8001 --reload"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
 
-    # Health check using Python's stdlib (curl is not available in slim images).
+  api-gateway:
+    build: .
+    container_name: api-gateway
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      APP_MODULE: app.gateway.main:app
+      APP_PORT: "8000"
+      ESTIMATION_SERVICE_URL: http://estimation-service:8001
+    volumes:
+      - ./app:/app/app
+    command: sh -c "uvicorn app.gateway.main:app --host 0.0.0.0 --port 8000 --reload"
+    depends_on:
+      estimation-service:
+        condition: service_healthy
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s

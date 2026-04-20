@@ -1,0 +1,355 @@
+% ─────────────────────────────────────────────────────────────────
+% FICHERO GENERADO AUTOMÁTICAMENTE
+% Comando: node scripts/generate-ontology-latex.js
+% Fuente:  atlas-messaging-ontology/schemas/
+% Etiquetas registradas: 5
+% No editar manualmente — los cambios se perderán en la siguiente generación.
+% ─────────────────────────────────────────────────────────────────
+
+% Requiere en main.tex: \usepackage{longtable}, \usepackage{amssymb}
+
+\subsection{Catálogo de etiquetas}
+\label{sec:ontologia-catalogo}
+
+El catálogo recoge las 5 etiquetas actualmente registradas en la ontología, organizadas por dominio funcional. Este contenido se genera automáticamente desde los esquemas JSON del repositorio \texttt{atlas-messaging-ontology}.
+
+\subsubsection{Dominio \texttt{tools}}
+\label{sec:ontologia-dominio-tools}
+
+\subparagraph{\texttt{tools:ai:embedding}}
+\label{sec:tag-tools-ai-embedding}
+
+Dominio: \texttt{tools} — Categoría: \texttt{ai} — Acción: \texttt{embedding}
+
+\paragraph{Petición (request)}
+
+\textbf{Tag:} \texttt{tools:ai:embedding:request}\\
+\textit{Request to generate vector embeddings from text input}
+
+\begin{center}
+\begin{longtable}{@{} l l c p{4.5cm} p{4cm} @{}}
+\toprule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endfirsthead
+\midrule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\footnotesize\itshape Continúa en la siguiente página} \\
+\endfoot
+\bottomrule
+\endlastfoot
+  \texttt{model} & \texttt{string} &  & Embedding model identifier & default: \texttt{embeddinggemma} \\
+  \texttt{input} & \texttt{string / array} & \checkmark & Text or array of texts to generate embeddings for &  \\
+  \texttt{dimensions} & \texttt{integer} &  & Desired dimensionality of the output vectors & mín: 64; máx: 4096 \\
+  \texttt{correlation\_id} & \texttt{string} &  & Unique identifier to correlate request with response &  \\
+  \texttt{reply\_to} & \texttt{string} &  & Queue tag where response should be sent & patrón: \texttt{\textasciicircum{}[a-z]+:[a-z]+:[a-z]+(:[a-z]+)?\$} \\
+\end{longtable}
+\end{center}
+
+\paragraph{Respuesta (response)}
+
+\textbf{Tag:} \texttt{tools:ai:embedding:response}\\
+\textit{Response containing generated vector embeddings from an embedding model (e.g. Ollama)}
+
+\begin{center}
+\begin{longtable}{@{} l l c p{4.5cm} p{4cm} @{}}
+\toprule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endfirsthead
+\midrule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\footnotesize\itshape Continúa en la siguiente página} \\
+\endfoot
+\bottomrule
+\endlastfoot
+  \texttt{model} & \texttt{string} & \checkmark & Embedding model used for generation &  \\
+  \texttt{embeddings} & \texttt{array[]} & \checkmark & Array of embedding vectors, one per input & minItems: 1 \\
+  \texttt{total\_duration} & \texttt{integer} &  & Total time taken for the request in nanoseconds & mín: 0 \\
+  \texttt{load\_duration} & \texttt{integer} &  & Time taken to load the model in nanoseconds & mín: 0 \\
+  \texttt{prompt\_eval\_count} & \texttt{integer} &  & Number of tokens evaluated in the prompt & mín: 0 \\
+  \texttt{embeddingPacked} & \texttt{string} &  & Base64-encoded packed representation of the embeddings &  \\
+\end{longtable}
+\end{center}
+
+
+\subparagraph{\texttt{tools:ai:llm}}
+\label{sec:tag-tools-ai-llm}
+
+Dominio: \texttt{tools} — Categoría: \texttt{ai} — Acción: \texttt{llm}
+
+\paragraph{Petición (request)}
+
+\textbf{Tag:} \texttt{tools:ai:llm:request}\\
+\textit{Request to generate text using a Large Language Model}
+
+\begin{center}
+\begin{longtable}{@{} l l c p{4.5cm} p{4cm} @{}}
+\toprule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endfirsthead
+\midrule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\footnotesize\itshape Continúa en la siguiente página} \\
+\endfoot
+\bottomrule
+\endlastfoot
+  \texttt{model} & \texttt{string} &  & LLM model identifier & default: \texttt{gemma3} \\
+  \texttt{system\_prompt} & \texttt{string} &  & System instructions for the model &  \\
+  \texttt{prompt} & \texttt{string} & \checkmark & User prompt to process &  \\
+  \texttt{correlation\_id} & \texttt{string} &  & Unique identifier to correlate request with response &  \\
+  \texttt{reply\_to} & \texttt{string} &  & Queue tag where response should be sent & patrón: \texttt{\textasciicircum{}[a-z]+:[a-z]+:[a-z]+(:[a-z]+)?\$} \\
+\end{longtable}
+\end{center}
+
+\paragraph{Respuesta (response)}
+
+\textbf{Tag:} \texttt{tools:ai:llm:response}\\
+\textit{Response from a Large Language Model after processing a prompt}
+
+\begin{center}
+\begin{longtable}{@{} l l c p{4.5cm} p{4cm} @{}}
+\toprule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endfirsthead
+\midrule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\footnotesize\itshape Continúa en la siguiente página} \\
+\endfoot
+\bottomrule
+\endlastfoot
+  \texttt{model} & \texttt{string} & \checkmark & LLM model identifier used for generation &  \\
+  \texttt{text} & \texttt{string} & \checkmark & Generated text response &  \\
+  \texttt{usage} & \texttt{object} &  & Token usage statistics &  \\
+  \texttt{finish\_reason} & \texttt{string} &  & Reason the model stopped generating & \texttt{stop}, \texttt{length}, \texttt{error} \\
+  \texttt{processing\_time} & \texttt{integer} &  & Processing time &  \\
+  \texttt{correlation\_id} & \texttt{string} &  & Identifier from the original request for correlation &  \\
+\end{longtable}
+\end{center}
+
+
+\subparagraph{\texttt{tools:ai:translation}}
+\label{sec:tag-tools-ai-translation}
+
+Dominio: \texttt{tools} — Categoría: \texttt{ai} — Acción: \texttt{translation}
+
+\paragraph{Petición (request)}
+
+\textbf{Tag:} \texttt{tools:ai:translation:request}\\
+\textit{Request to translate content to a target locale, typically triggered by a CMS i18n workflow}
+
+\begin{center}
+\begin{longtable}{@{} l l c p{4.5cm} p{4cm} @{}}
+\toprule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endfirsthead
+\midrule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\footnotesize\itshape Continúa en la siguiente página} \\
+\endfoot
+\bottomrule
+\endlastfoot
+  \texttt{jobId} & \texttt{string} & \checkmark & Unique job identifier composed of contentType and documentId (e.g., 'article:42') & patrón: \texttt{\textasciicircum{}[a-zA-Z0-9.\_-]+:[a-zA-Z0-9.\_-]+\$} \\
+  \texttt{timestamp} & \texttt{integer} & \checkmark & Unix timestamp in milliseconds when the request was created & mín: 0 \\
+  \texttt{contentType} & \texttt{string} & \checkmark & Content type identifier (e.g., Strapi UID like 'article', 'page') & minLen: 1 \\
+  \texttt{documentId} & \texttt{string} & \checkmark & Unique identifier of the document to translate & minLen: 1 \\
+  \texttt{targetLocale} & \texttt{string} & \checkmark & BCP 47 locale code for the target language (e.g., 'es', 'en-US', 'fr-FR') & patrón: \texttt{\textasciicircum{}[a-z]\{2\}(-[A-Z]\{2\})?\$} \\
+  \texttt{data} & \texttt{object} & \checkmark & Key-value pairs of field names and their content to translate &  \\
+  \texttt{prefix} & \texttt{string} &  & Prefix marker for pending translations (e.g., '[[TRANSLATION\_PENDING]]') & default: \texttt{[[TRANSLATION\_PENDING]]} \\
+  \texttt{correlation\_id} & \texttt{string} &  & Unique identifier to correlate request with response &  \\
+  \texttt{reply\_to} & \texttt{string} &  & Queue tag where response should be sent & patrón: \texttt{\textasciicircum{}[a-z]+:[a-z]+:[a-z]+(:[a-z]+)?\$} \\
+\end{longtable}
+\end{center}
+
+\paragraph{Respuesta (response)}
+
+\textbf{Tag:} \texttt{tools:ai:translation:response}\\
+\textit{Response containing the translated content for a given document and target locale}
+
+\begin{center}
+\begin{longtable}{@{} l l c p{4.5cm} p{4cm} @{}}
+\toprule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endfirsthead
+\midrule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\footnotesize\itshape Continúa en la siguiente página} \\
+\endfoot
+\bottomrule
+\endlastfoot
+  \texttt{jobId} & \texttt{string} & \checkmark & Unique job identifier from the original request & patrón: \texttt{\textasciicircum{}[a-zA-Z0-9.\_-]+:[a-zA-Z0-9.\_-]+\$} \\
+  \texttt{timestamp} & \texttt{integer} & \checkmark & Unix timestamp in milliseconds when the response was created & mín: 0 \\
+  \texttt{contentType} & \texttt{string} & \checkmark & Content type identifier from the original request & minLen: 1 \\
+  \texttt{documentId} & \texttt{string} & \checkmark & Unique identifier of the translated document & minLen: 1 \\
+  \texttt{targetLocale} & \texttt{string} & \checkmark & BCP 47 locale code of the translated content & patrón: \texttt{\textasciicircum{}[a-z]\{2\}(-[A-Z]\{2\})?\$} \\
+  \texttt{data} & \texttt{object} & \checkmark & Key-value pairs of field names and their translated content &  \\
+  \texttt{status} & \texttt{string} & \checkmark & Result status of the translation job & \texttt{completed}, \texttt{partial}, \texttt{error} \\
+  \texttt{error} & \texttt{object} &  & Error details when status is 'error' or 'partial' &  \\
+  \texttt{correlation\_id} & \texttt{string} &  & Identifier from the original request for correlation &  \\
+\end{longtable}
+\end{center}
+
+
+\subparagraph{\texttt{tools:ocr:image:file}}
+\label{sec:tag-tools-ocr-image-file}
+
+Dominio: \texttt{tools} — Categoría: \texttt{ocr} — Acción: \texttt{image:file}
+
+\paragraph{Petición (request)}
+
+\textbf{Tag:} \texttt{tools:ocr:image:file:request}\\
+\textit{Request to extract text from an image sent as base64-encoded file}
+
+\begin{center}
+\begin{longtable}{@{} l l c p{4.5cm} p{4cm} @{}}
+\toprule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endfirsthead
+\midrule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\footnotesize\itshape Continúa en la siguiente página} \\
+\endfoot
+\bottomrule
+\endlastfoot
+  \texttt{content} & \texttt{string} & \checkmark & Base64-encoded image content &  \\
+  \texttt{mimetype} & \texttt{string} & \checkmark & MIME type of the image & \texttt{image/png}, \texttt{image/jpeg}, \texttt{image/tiff}, \texttt{image/webp}, \texttt{image/bmp} \\
+  \texttt{filename} & \texttt{string} &  & Original filename for reference &  \\
+  \texttt{language} & \texttt{string} &  & Expected language of the text (ISO 639-1) & default: \texttt{es}; patrón: \texttt{\textasciicircum{}[a-z]\{2\}\$} \\
+  \texttt{output\_format} & \texttt{string} &  & Desired output format for the extracted text & \texttt{text}, \texttt{json}, \texttt{hocr}; default: \texttt{text} \\
+  \texttt{regions} & \texttt{object[]} &  & Specific regions of the image to process (coordinates in pixels) &  \\
+  \texttt{correlation\_id} & \texttt{string} &  & Unique identifier to correlate request with response &  \\
+  \texttt{reply\_to} & \texttt{string} &  & Queue tag where response should be sent & patrón: \texttt{\textasciicircum{}[a-z]+:[a-z]+:[a-z]+(:[a-z]+)?\$} \\
+\end{longtable}
+\end{center}
+
+\paragraph{Respuesta (response)}
+
+\textbf{Tag:} \texttt{tools:ocr:image:file:response}\\
+\textit{Response containing text extracted from a base64-encoded image, as returned by an Ollama-compatible OCR model}
+
+\begin{center}
+\begin{longtable}{@{} l l c p{4.5cm} p{4cm} @{}}
+\toprule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endfirsthead
+\midrule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\footnotesize\itshape Continúa en la siguiente página} \\
+\endfoot
+\bottomrule
+\endlastfoot
+  \texttt{model} & \texttt{string} & \checkmark & Name of the OCR model used &  \\
+  \texttt{created\_at} & \texttt{string} & \checkmark & Timestamp of when the response was generated (ISO 8601) & formato: \texttt{date-time} \\
+  \texttt{response} & \texttt{string} & \checkmark & Extracted text content, may include markdown formatting &  \\
+  \texttt{done} & \texttt{boolean} & \checkmark & Whether the generation is complete &  \\
+  \texttt{done\_reason} & \texttt{string} & \checkmark & Reason why the generation stopped (e.g. 'stop') &  \\
+  \texttt{context} & \texttt{integer[]} &  & Token context used during generation &  \\
+  \texttt{total\_duration} & \texttt{integer} &  & Total processing time in nanoseconds & mín: 0 \\
+  \texttt{load\_duration} & \texttt{integer} &  & Model load time in nanoseconds & mín: 0 \\
+  \texttt{prompt\_eval\_count} & \texttt{integer} &  & Number of tokens in the prompt & mín: 0 \\
+  \texttt{prompt\_eval\_duration} & \texttt{integer} &  & Time spent evaluating the prompt in nanoseconds & mín: 0 \\
+  \texttt{eval\_count} & \texttt{integer} &  & Number of tokens generated in the response & mín: 0 \\
+  \texttt{eval\_duration} & \texttt{integer} &  & Time spent generating the response in nanoseconds & mín: 0 \\
+\end{longtable}
+\end{center}
+
+
+\subparagraph{\texttt{tools:ocr:image:url}}
+\label{sec:tag-tools-ocr-image-url}
+
+Dominio: \texttt{tools} — Categoría: \texttt{ocr} — Acción: \texttt{image:url}
+
+\paragraph{Petición (request)}
+
+\textbf{Tag:} \texttt{tools:ocr:image:url:request}\\
+\textit{Request to extract text from an image referenced by URL}
+
+\begin{center}
+\begin{longtable}{@{} l l c p{4.5cm} p{4cm} @{}}
+\toprule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endfirsthead
+\midrule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\footnotesize\itshape Continúa en la siguiente página} \\
+\endfoot
+\bottomrule
+\endlastfoot
+  \texttt{url} & \texttt{string} & \checkmark & Public URL of the image to process & formato: \texttt{uri} \\
+  \texttt{language} & \texttt{string} &  & Expected language of the text (ISO 639-1) & default: \texttt{es}; patrón: \texttt{\textasciicircum{}[a-z]\{2\}\$} \\
+  \texttt{output\_format} & \texttt{string} &  & Desired output format for the extracted text & \texttt{text}, \texttt{json}, \texttt{hocr}; default: \texttt{text} \\
+  \texttt{regions} & \texttt{object[]} &  & Specific regions of the image to process (coordinates in pixels) &  \\
+  \texttt{correlation\_id} & \texttt{string} &  & Unique identifier to correlate request with response &  \\
+  \texttt{reply\_to} & \texttt{string} &  & Queue tag where response should be sent & patrón: \texttt{\textasciicircum{}[a-z]+:[a-z]+:[a-z]+(:[a-z]+)?\$} \\
+\end{longtable}
+\end{center}
+
+\paragraph{Respuesta (response)}
+
+\textbf{Tag:} \texttt{tools:ocr:image:url:response}\\
+\textit{Response containing text extracted from an image referenced by URL, as returned by an Ollama-compatible OCR model}
+
+\begin{center}
+\begin{longtable}{@{} l l c p{4.5cm} p{4cm} @{}}
+\toprule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endfirsthead
+\midrule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Req.} & \textbf{Descripción} & \textbf{Restricciones} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{\footnotesize\itshape Continúa en la siguiente página} \\
+\endfoot
+\bottomrule
+\endlastfoot
+  \texttt{model} & \texttt{string} & \checkmark & Name of the OCR model used &  \\
+  \texttt{created\_at} & \texttt{string} & \checkmark & Timestamp of when the response was generated (ISO 8601) & formato: \texttt{date-time} \\
+  \texttt{response} & \texttt{string} & \checkmark & Extracted text content, may include markdown formatting &  \\
+  \texttt{done} & \texttt{boolean} & \checkmark & Whether the generation is complete &  \\
+  \texttt{done\_reason} & \texttt{string} & \checkmark & Reason why the generation stopped (e.g. 'stop') &  \\
+  \texttt{context} & \texttt{integer[]} &  & Token context used during generation &  \\
+  \texttt{total\_duration} & \texttt{integer} &  & Total processing time in nanoseconds & mín: 0 \\
+  \texttt{load\_duration} & \texttt{integer} &  & Model load time in nanoseconds & mín: 0 \\
+  \texttt{prompt\_eval\_count} & \texttt{integer} &  & Number of tokens in the prompt & mín: 0 \\
+  \texttt{prompt\_eval\_duration} & \texttt{integer} &  & Time spent evaluating the prompt in nanoseconds & mín: 0 \\
+  \texttt{eval\_count} & \texttt{integer} &  & Number of tokens generated in the response & mín: 0 \\
+  \texttt{eval\_duration} & \texttt{integer} &  & Time spent generating the response in nanoseconds & mín: 0 \\
+\end{longtable}
+\end{center}
+

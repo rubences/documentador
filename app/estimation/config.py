@@ -21,8 +21,17 @@ class Settings(BaseSettings):
     RABBITMQ_EXCHANGE: str = "estimation.jobs"
     RABBITMQ_QUEUE: str = "estimation.jobs.queue"
     RABBITMQ_ROUTING_KEY: str = "estimation.requested"
+    RABBITMQ_RETRY_EXCHANGE: str = "estimation.jobs.retry"
+    RABBITMQ_RETRY_QUEUE: str = "estimation.jobs.retry.queue"
+    RABBITMQ_DLQ_EXCHANGE: str = "estimation.jobs.dlq"
+    RABBITMQ_DLQ_QUEUE: str = "estimation.jobs.dlq.queue"
+    RABBITMQ_MAX_RETRIES: int = 5
+    RABBITMQ_BASE_RETRY_DELAY_MS: int = 1000
     REDIS_URL: str = "redis://redis:6379/0"
     REDIS_JOB_KEY_PREFIX: str = "estimation:job"
+    OUTBOX_KEY_PREFIX: str = "estimation:outbox"
+    OUTBOX_DISPATCH_BATCH_SIZE: int = 20
+    OUTBOX_DISPATCH_INTERVAL_SECONDS: float = 1.0
 
     @model_validator(mode="after")
     def validate_api_key_for_provider(self) -> "Settings":

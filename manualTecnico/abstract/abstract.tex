@@ -1,0 +1,13 @@
+\chapter*{Resumen}
+\addcontentsline{toc}{chapter}{Resumen}
+
+El \textbf{Proyecto Atlas} es una plataforma \textit{Smart City} diseñada e implementada para el municipio de San Lorenzo de El Escorial. Su objetivo es integrar, centralizar y exponer información municipal de múltiples fuentes heterogéneas a través de una arquitectura de microservicios orientada a eventos, alineada con el estándar español \textbf{UNE~178104:2017} para sistemas de ciudad inteligente.
+
+La plataforma combina tecnologías modernas de desarrollo web (Node.js, Fastify, Strapi) con capacidades de inteligencia artificial (modelos de lenguaje, OCR, embeddings semánticos) y mecanismos de comunicación asíncrona basados en RabbitMQ. El sistema agrega información de eventos culturales y turísticos procedente de múltiples fuentes —sitios web municipales, calendarios ICS, redes sociales y documentos escaneados— mediante técnicas de \textit{web scraping}, análisis con LLMs y reconocimiento óptico de caracteres.
+
+La arquitectura se organiza en capas funcionales: una capa de adquisición de datos, una capa de conocimiento con procesamiento e IA, una capa de interoperabilidad y una capa de servicios expuesta mediante API REST. Esta separación permite escalar y evolucionar cada componente de forma independiente.
+
+Este manual describe la arquitectura técnica de la plataforma, sus módulos constituyentes, los patrones de integración empleados y los procedimientos de despliegue y desarrollo.
+
+\vspace{1cm}
+\textbf{Palabras clave:} Smart City, UNE~178104:2017, microservicios, API REST, RabbitMQ, inteligencia artificial, web scraping, Node.js, San Lorenzo de El Escorial.

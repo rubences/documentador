@@ -1,0 +1,137 @@
+\documentclass[a4paper,11pt,twoside]{book}
+
+% ─── Codificación y Tipografía ───────────────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{lmodern}
+
+% ─── Geometría de página ─────────────────────────────────────────────────────
+\usepackage[top=3cm, bottom=3cm, left=3.5cm, right=2.5cm]{geometry}
+
+% ─── Gráficos e imágenes ─────────────────────────────────────────────────────
+\usepackage{graphicx}
+\graphicspath{{imagenes/}}
+\usepackage{float}
+
+% ─── Colores ─────────────────────────────────────────────────────────────────
+\usepackage[dvipsnames]{xcolor}
+\definecolor{atlasblue}{RGB}{0, 83, 156}
+\definecolor{codebackground}{RGB}{245, 245, 245}
+
+% ─── Código fuente ───────────────────────────────────────────────────────────
+\usepackage{listings}
+\lstset{
+  backgroundcolor=\color{codebackground},
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{gray!40},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  tabsize=2,
+  showstringspaces=false,
+  captionpos=b,
+}
+\lstdefinelanguage{json}{
+  basicstyle=\ttfamily\small,
+  morestring=[b]",
+  stringstyle=\color{ForestGreen},
+  literate=
+   *{0}{{{\color{Maroon}0}}}{1}
+    {1}{{{\color{Maroon}1}}}{1}
+    {2}{{{\color{Maroon}2}}}{1}
+    {:}{{{\color{atlasblue}{:}}}}{1}
+    {\{}{{{\color{black}{\{}}}}{1}
+    {\}}{{{\color{black}{\}}}}}{1},
+}
+
+% ─── Tablas ──────────────────────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{longtable}      % tablas multipágina (catálogo ontología)
+
+% ─── Símbolos ────────────────────────────────────────────────────────────────
+\usepackage{amssymb}        % \checkmark en tablas generadas
+
+% ─── Hipervínculos y PDF ─────────────────────────────────────────────────────
+\usepackage[
+  colorlinks=true,
+  linkcolor=atlasblue,
+  urlcolor=atlasblue,
+  citecolor=atlasblue,
+  pdftitle={Proyecto Atlas - Manual Técnico},
+  pdfauthor={Fernando Rodríguez Sela},
+  pdfsubject={Smart City Platform},
+  pdfkeywords={Smart City, UNE 178104, microservicios, API, IoT},
+]{hyperref}
+
+% ─── Cabeceras y pies de página ──────────────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE]{\nouppercase{\leftmark}}
+\fancyhead[RO]{\nouppercase{\rightmark}}
+\fancyfoot[LE,RO]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ─── Otros ───────────────────────────────────────────────────────────────────
+\usepackage{microtype}
+\usepackage{emptypage}
+\usepackage{parskip}
+\setlength{\parindent}{0pt}
+
+\input{tikz_macros}
+
+% ─── Metadatos ───────────────────────────────────────────────────────────────
+\title{
+  \vspace{2cm}
+  {\Huge\bfseries Proyecto Atlas}\\[0.5cm]
+  {\Large Plataforma Smart City para San Lorenzo de El Escorial}\\[1cm]
+  {\large Manual Técnico}\\[2cm]
+  {\normalsize Versión 1.0}
+}
+\author{Fernando Rodríguez Sela}
+\date{Febrero 2026}
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+% Portada
+\maketitle
+\thispagestyle{empty}
+\cleardoublepage
+
+% Abstract / Resumen
+\include{abstract/abstract}
+\cleardoublepage
+
+% Tabla de contenidos
+\tableofcontents
+\cleardoublepage
+
+% Lista de figuras (descomentar cuando haya figuras)
+% \listoffigures
+% \cleardoublepage
+
+% Lista de tablas (descomentar cuando haya tablas)
+% \listoftables
+% \cleardoublepage
+
+% ─── Capítulos ───────────────────────────────────────────────────────────────
+\include{capitulos/01-introduccion/introduccion}
+\include{capitulos/02-arquitectura/arquitectura}
+\include{capitulos/03-modulos/modulos}
+\include{capitulos/04-infraestructura/infraestructura}
+\include{capitulos/05-despliegue/despliegue}
+\include{capitulos/06-desarrollo/desarrollo}
+
+\include{capitulos/xx-webs/turismo}
+
+% ─── Apéndices ───────────────────────────────────────────────────────────────
+% \appendix
+% \include{apendices/...}
+
+\end{document}

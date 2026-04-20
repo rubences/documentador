@@ -1,0 +1,82 @@
+\chapter{Introducción}
+\label{cap:introduccion}
+
+\section{Contexto y motivación}
+
+San Lorenzo de El Escorial es un municipio de la Comunidad de Madrid con una intensa actividad cultural, turística y patrimonial. La gestión y difusión de la información municipal —eventos, actividades, servicios, condiciones ambientales— se encuentra dispersa entre múltiples organismos, sistemas y canales de comunicación sin coordinación entre sí.
+
+El \textbf{Proyecto Atlas} nace como respuesta a esta fragmentación. Su propósito es construir una plataforma tecnológica que sirva de nodo central de integración de datos municipales, capaz de agregar información procedente de fuentes heterogéneas, procesarla y ofrecerla de forma coherente y estructurada a través de interfaces estandarizadas.
+
+El nombre hace referencia al personaje mitológico que sostiene el mundo sobre sus hombros: la plataforma actúa como sustento tecnológico sobre el que se pueden construir aplicaciones y servicios orientados al ciudadano.
+
+\section{Marco normativo: UNE 178104:2017}
+
+El diseño de la plataforma sigue el estándar español \textbf{UNE~178104:2017} (\textit{Smart Cities — Sistemas de gestión de la ciudad inteligente}), que establece una arquitectura de referencia organizada en las siguientes capas:
+
+\begin{description}
+  \item[Capa de adquisición] Integración con sensores, fuentes de datos externas y sistemas de terceros. En Atlas incluye los módulos de \textit{scraping} web, calendarios ICS y redes sociales.
+
+  \item[Capa de conocimiento] Almacenamiento, procesamiento y enriquecimiento de datos. Incluye la base de datos relacional, el sistema de caché y los servicios de inteligencia artificial.
+
+  \item[Capa de interoperabilidad] Transformación, validación y normalización de datos entre sistemas. Implementada mediante la ontología de mensajería (\texttt{atlas-messaging-ontology}) y los esquemas JSON.
+
+  \item[Capa de servicios] Exposición de datos y funcionalidades a aplicaciones clientes. Materializada en la API REST (\texttt{atlas-api}) y el CMS (\texttt{atlas-cms}).
+
+  \item[Capa de soporte] Infraestructura transversal: monitorización, seguridad, gestión de usuarios y sistemas de cola y caché.
+\end{description}
+
+\section{Objetivos del sistema}
+
+Los objetivos técnicos fundamentales de la plataforma son:
+
+\begin{enumerate}
+  \item \textbf{Integración de fuentes heterogéneas}: capturar información de sitios web, feeds ICS, redes sociales y documentos físicos escaneados mediante técnicas de \textit{scraping}, OCR y análisis con LLMs.
+
+  \item \textbf{Arquitectura orientada a eventos}: desacoplar productores y consumidores de datos mediante un \textit{message broker} (RabbitMQ), permitiendo la escalabilidad independiente de cada componente.
+
+  \item \textbf{Capacidades de inteligencia artificial}: incorporar modelos de lenguaje locales (Ollama) para análisis semántico de contenidos, extracción de datos no estructurados y generación de embeddings para búsqueda semántica.
+
+  \item \textbf{API REST estándar}: exponer todos los servicios de la plataforma a través de una API unificada con validación de esquemas, versionado y control de errores consistente.
+
+  \item \textbf{Gestión de contenidos}: ofrecer un CMS (\textit{headless}) que permita a los editores municipales publicar y mantener información sin necesidad de conocimientos técnicos.
+
+  \item \textbf{Mantenibilidad y extensibilidad}: organizar el código en librerías reutilizables y microservicios independientes para facilitar la evolución del sistema a largo plazo.
+\end{enumerate}
+
+\section{Alcance de este documento}
+
+Este manual técnico documenta la arquitectura de la plataforma Atlas en su versión~1.0. Cubre:
+
+\begin{itemize}
+  \item La arquitectura general del sistema y sus patrones de diseño (Capítulo~\ref{cap:arquitectura}).
+  \item Cada uno de los módulos y microservicios que componen la plataforma (Capítulo~\ref{cap:modulos}).
+  \item La infraestructura de soporte: bases de datos, caché, cola de mensajes y servicios de IA (Capítulo~\ref{cap:infraestructura}).
+  \item Los procedimientos de despliegue en entornos de desarrollo y producción (Capítulo~\ref{cap:despliegue}).
+  \item Las guías de desarrollo para contribuir o extender la plataforma (Capítulo~\ref{cap:desarrollo}).
+\end{itemize}
+
+No es objeto de este manual la descripción de los endpoints de la API desde el punto de vista del consumidor (para ello consultar el manual de administración) ni la operación del CMS por parte de los editores de contenido.
+
+\section{Tecnologías principales}
+
+La plataforma está construida íntegramente sobre tecnologías de código abierto:
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{llX}
+    \toprule
+    \textbf{Tecnología} & \textbf{Versión} & \textbf{Uso en la plataforma} \\
+    \midrule
+    Node.js      & 20–24   & Runtime principal de todos los microservicios \\
+    Fastify      & 5.x     & Framework HTTP para la API Gateway \\
+    Strapi       & 5.x     & CMS headless \\
+    RabbitMQ     & 3.x     & Message broker para comunicación entre servicios \\
+    MariaDB      & 11.x    & Base de datos relacional del CMS \\
+    Valkey       & 8.x     & Caché compatible con Redis \\
+    Ollama       & latest  & Servidor local de modelos de lenguaje \\
+    Docker       & 24+     & Contenerización y despliegue \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Tecnologías principales de la plataforma Atlas}
+  \label{tab:tecnologias}
+\end{table}

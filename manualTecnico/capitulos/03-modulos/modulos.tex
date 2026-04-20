@@ -1,0 +1,53 @@
+\chapter{Módulos de la plataforma}
+\label{cap:modulos}
+
+A lo largo de este capítulo se detallarán los aspectos más relevantes de cada uno de los microservicios desplegados en la plataforma de ``Smart city'' de San Lorenzo de el Escorial.
+
+\section{API Gateway (\texttt{atlas-api})}
+
+Éste microservicio forma parte de los servicios de la ``vista'' (\ref{sec:microservicios}) y está compuesto por dos contenedores (\ref{cap:despliegue}), por un lado se dispone de un contendor basado en NGINX que actúa como proxy inverso y terminador SSL, en segundo lugar se expone un microservicio que implementa un API REST que da acceso a las aplicaciones y a los servicios del ayuntamiento para la gestión de la platafomra.
+
+Este microservicio se implementa con Node.JS y el framework Fastify. Las peticiones HTTP recibidas son enrutadas a una cola AMQP haciendo uso de `Ferimer Endpoints Manager' (\ref{sec:ferimer-endpoints-manager})  y `Ferimer Queue Manager' (\ref{sec:ferimer-queue-manager})  valiando los documentos JSON intercambaidos con `Atlas Messaging Ontology' (\ref{sec:atlas-messaging-ontology}) 
+
+% TODO: Fastify, endpoints-manager, validación AJV, RPC emitter, puerto 3000
+
+\section{CMS (\texttt{atlas-cms})}
+% TODO: Strapi 5, MariaDB, Valkey, AEMET, i18n, puerto 1337
+
+\section{Servicio de Inteligencia Artificial (\texttt{atlas-service-ollama})}
+% TODO: LLM, OCR, embeddings, routing keys, RPC receiver
+
+\section{Scraping de eventos (\texttt{atlas-calendar-scrapping})}
+% TODO: BaseScrapper, ICSScrapper, FBScrapper, listado de scrappers
+
+\section{Librerías de infraestructura}
+
+\subsection{\texttt{ferimer-queue-manager}}\label{sec:ferimer-queue-manager}
+
+(\url{https://github.com/Proyecto-Atlas/Ferimer-Queue-Manager})
+% TODO: AMQP_RPC_Emitter/Receiver, AMQP_FireAndForget_Emitter/Receiver, vhost /atlas
+
+\subsection{\texttt{ferimer-endpoints-manager}}\label{sec:ferimer-endpoints-manager}
+% TODO: Carga dinámica de endpoints, validación, path params
+(\url{https://github.com/Proyecto-Atlas/Ferimer-Endpoints-Manager})
+
+\subsection{\texttt{ferimer-database-manager}}
+% TODO: Abstracción MariaDB, sqlstring, connection pooling
+
+\subsection{\texttt{atlas-messaging-ontology}}\label{sec:atlas-messaging-ontology}
+
+(\url{https://github.com/Proyecto-Atlas/atlas-messaging-ontology})
+
+Registro centralizado de esquemas JSON para los mensajes que circulan por las colas AMQP.
+Define el formato canónico de etiquetas (\textit{tags}) con la estructura \texttt{dominio:categoría:acción[:subtipo]}
+y proporciona validación AJV tanto para peticiones como para respuestas.
+
+El catálogo de etiquetas del siguiente apartado se genera automáticamente
+desde los esquemas JSON del repositorio fuente ejecutando:
+
+\begin{lstlisting}[language=bash, caption={Regenerar catálogo de etiquetas}]
+node scripts/generate-ontology-latex.js
+\end{lstlisting}
+
+% Catálogo generado automáticamente — NO editar ontologia-generada.tex a mano
+\input{capitulos/03-modulos/ontologia-generada}

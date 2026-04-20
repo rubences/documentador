@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -22,3 +24,23 @@ class EstimationResponse(BaseModel):
     model: str = Field(..., description="LLM model used")
     provider: str = Field(..., description="LLM provider used")
     usage: TokenUsage
+
+
+class AsyncEstimationAccepted(BaseModel):
+    """Acknowledgement returned when async estimation is accepted."""
+
+    job_id: str = Field(..., description="Asynchronous estimation job identifier")
+    status: Literal["queued"] = "queued"
+    correlation_id: str = Field(..., description="Distributed correlation identifier")
+
+
+class AsyncEstimationStatus(BaseModel):
+    """Status payload for asynchronous estimation jobs."""
+
+    job_id: str
+    status: Literal["queued", "processing", "completed", "failed"]
+    correlation_id: str
+    created_at: str
+    updated_at: str
+    result: EstimationResponse | None = None
+    error: str | None = None
